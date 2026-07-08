@@ -40,16 +40,18 @@ Run code blocks interactively in Obsidian, **with standard input (stdin) support
 
 ## Installation
 
-### Method 1: Community Plugin (Recommended)
-1. Open Obsidian → Settings → Community Plugins
-2. Disable "Safe Mode"
-3. Click "Browse" → Search "Code Runner" → Install → Enable
-
-### Method 2: Manual Installation
+### Method 1: Manual Installation
 1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/chujiu-dev/obsidian-code-runner/releases)
 2. Create folder: `<vault>/.obsidian/plugins/code-runner/`
 3. Copy the 3 files into that folder
 4. Restart Obsidian → Settings → Community Plugins → Enable "Code Runner"
+
+### Method 2: Community Plugin (Under Review)
+This plugin has been submitted to the Obsidian community plugin directory and is currently under review. Once approved, you will be able to install it directly:
+
+1. Open Obsidian → Settings → Community Plugins
+2. Disable "Safe Mode"
+3. Click "Browse" → Search "Code Runner" → Install → Enable
 
 ## Usage
 
