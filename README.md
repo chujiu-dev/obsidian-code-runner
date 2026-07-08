@@ -1,12 +1,12 @@
 # Code Runner — Obsidian Plugin
 
-有没有想过在obsidian上直接运行你的代码？我常常想，obsidian写出来的代码块这么漂亮，不能直接跑就太可惜了。所以，我做了这个小插件。当你点击右下角中左边的小键盘按钮后，就可以进行输入了；点击右边的运行按钮，就可以看到代码的运行结果了，这不是很有意思吗？
+有没有想过在obsidian上直接运行你的代码？我常常想，obsidian写出来的代码块这么漂亮，不能直接跑就太可惜了。如果这些代码块既能实现输入又能据此输出，这个笔记软件几乎就是一个完美的小终端了。我尝试了一些其他插件，发现它们很少同时提供输入与输出功能，于是我基于 Code Emitter 加入了自己需要的输入功能，并按自己的需求做了一些改动，最终做出了这个小插件。当你点击代码块右下角左侧的小键盘按钮后，就可以进行输入了；点击右侧的运行按钮，就可以看到代码的运行结果了。这不是很有意思吗？
 
 后续还将更新语言切换功能和自动输入识别功能，也许还会和其他插件组合使用，实现更多功能。
 
 ---
 
-Have you ever wanted to run your code directly in Obsidian? I often think that the code blocks written in Obsidian are so beautiful, and it would be a pity if they couldn't be run directly. So, I made this little plugin. When you click the small keyboard button on the left in the lower right corner, you can enter input; click the run button on the right, and you can see the running result of the code. Isn't that interesting?
+Have you ever thought about running your code directly in Obsidian? I often think it's such a pity that the code blocks made in Obsidian look so beautiful but can't be run directly. If these code blocks could both take input and produce output, this note-taking app would be almost a perfect little terminal. I tried some other plugins and found that few of them provide both input and output at the same time. So I took Code Emitter, added the input functionality I needed, made a few tweaks of my own, and built this little plugin. Click the keyboard button on the left at the bottom of the code block to enter input; click the run button on the right to see the result. Isn't that interesting?
 
 In the future, language switching and automatic input detection features will be updated. Maybe it will also be used in combination with other plugins to achieve more functions.
 
