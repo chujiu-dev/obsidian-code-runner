@@ -1,5 +1,17 @@
 # Code Runner — Obsidian Plugin
 
+有没有想过在obsidian上直接运行你的代码？我常常想，obsidian写出来的代码块这么漂亮，不能直接跑就太可惜了。所以，我做了这个小插件。当你点击右下角中左边的小键盘按钮后，就可以进行输入了；点击右边的运行按钮，就可以看到代码的运行结果了，这不是很有意思吗？
+
+后续还将更新语言切换功能和自动输入识别功能，也许还会和其他插件组合使用，实现更多功能。
+
+---
+
+Have you ever wanted to run your code directly in Obsidian? I often think that the code blocks written in Obsidian are so beautiful, and it would be a pity if they couldn't be run directly. So, I made this little plugin. When you click the small keyboard button on the left in the lower right corner, you can enter input; click the run button on the right, and you can see the running result of the code. Isn't that interesting?
+
+In the future, language switching and automatic input detection features will be updated. Maybe it will also be used in combination with other plugins to achieve more functions.
+
+---
+
 Run code blocks interactively in Obsidian, **with standard input (stdin) support**. Supports 18+ programming languages including Python, C/C++, Java, Go, JavaScript, and more.
 
 > 🎁 **Key Feature**: Unlike the original Code Emitter, Code Runner supports **interactive input** — `input()`, `scanf()`, `cin`, etc. now work via a built-in input textarea.
@@ -34,7 +46,7 @@ Run code blocks interactively in Obsidian, **with standard input (stdin) support
 3. Click "Browse" → Search "Code Runner" → Install → Enable
 
 ### Method 2: Manual Installation
-1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/xkm/obsidian-code-runner/releases)
+1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/chujiu-dev/obsidian-code-runner/releases)
 2. Create folder: `<vault>/.obsidian/plugins/code-runner/`
 3. Copy the 3 files into that folder
 4. Restart Obsidian → Settings → Community Plugins → Enable "Code Runner"
@@ -57,7 +69,7 @@ Click the ▶ **Play button** to run. Output appears below the code block.
 
 For programs that need user input:
 
-1. Click the **👁 eye icon** (next to the Play button) to show the input textarea
+1. Click the **⌨ keyboard icon** (left of the Play button) to show the input textarea
 2. Type your input data in the textarea
 3. Click ▶ Run
 
@@ -131,7 +143,7 @@ MIT License — see [LICENSE](LICENSE) file.
 ## Building From Source
 
 ```bash
-git clone https://github.com/xkm/obsidian-code-runner.git
+git clone https://github.com/chujiu-dev/obsidian-code-runner.git
 cd obsidian-code-runner
 npm install
 npm run build

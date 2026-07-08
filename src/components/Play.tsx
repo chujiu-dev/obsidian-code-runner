@@ -5,6 +5,7 @@ import Spin from './Spin';
 import md5 from 'crypto-js/md5';
 import Term from './Term';
 import Icon from './Icon';
+// Future: import { needsStdin, supportsStdin } from '../backend/stdin-detect';
 
 interface CacheEntry {
   [code: string]: {
@@ -17,7 +18,6 @@ export default (props: {
   lang: string,
   code: string,
   sourcePath: string,
-  autoRun?: boolean
 }) => {
 
   const cacheKey = () => `code-emitter-cache-${props.sourcePath}`;
@@ -70,9 +70,11 @@ export default (props: {
     const r = readFromCache();
     if (r) {
       stdio.set(r);
-    } else if (props.autoRun) {
-      await run();
     }
+    // Future: auto-detect stdin need
+    // if (needsStdin(props.lang, props.code)) {
+    //   setShowInput(true);
+    // }
   });
 
   onCleanup(writeToCache);
@@ -81,10 +83,10 @@ export default (props: {
     <div class="code-emitter-block solid">
       <Show when={ !running() && !hasResult()}>
         <div class="code-emitter-actions">
-          <i aria-label="play" class="button-play" onClick={run}><Icon name="play"/></i>
           <i aria-label="toggle-input" class="button-input-toggle" onClick={() => setShowInput(v => !v)} title="Toggle input area">
-            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" width="0.75em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M256 80c-96 0-176 64-240 176 64 112 144 176 240 176s176-64 240-176C432 144 352 80 256 80zm0 288c-61.9 0-112-50.1-112-112S194.1 144 256 144s112 50.1 112 112-50.1 112-112 112zm0-176c-35.3 0-64 28.7-64 64s28.7 64 64 64 64-28.7 64-64-28.7-64-64-64z"/></svg>
+            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" width="0.7em" height="0.6em" viewBox="0 0 160 112"><rect x="12" y="10" width="136" height="92" rx="4" fill="none" stroke="currentColor" stroke-width="20"/><circle cx="41" cy="36" r="7" fill="currentColor"/><circle cx="67" cy="36" r="7" fill="currentColor"/><circle cx="93" cy="36" r="7" fill="currentColor"/><circle cx="119" cy="36" r="7" fill="currentColor"/><circle cx="41" cy="58" r="7" fill="currentColor"/><circle cx="67" cy="58" r="7" fill="currentColor"/><circle cx="93" cy="58" r="7" fill="currentColor"/><circle cx="119" cy="58" r="7" fill="currentColor"/><rect x="41" y="72" width="78" height="14" rx="7" fill="currentColor"/></svg>
           </i>
+          <i aria-label="play" class="button-play" onClick={run}><Icon name="play"/></i>
         </div>
       </Show>
 

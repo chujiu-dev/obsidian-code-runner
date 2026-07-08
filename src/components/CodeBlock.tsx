@@ -2,7 +2,7 @@ import Play from './Play';
 import { loadPrism } from 'obsidian';
 
 
-export default (props: { lang: string, code: string, sourcePath: string, autoRun: boolean } ) => {
+export default (props: { lang: string, code: string, sourcePath: string } ) => {
   const highlightElement = async (el: HTMLElement) => {
     const prism = await loadPrism();
     prism.highlightElement(el);
