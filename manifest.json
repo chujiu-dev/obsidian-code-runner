@@ -1,0 +1,10 @@
+{
+  "id": "code-runner",
+  "name": "Code Runner",
+  "version": "1.0.0",
+  "minAppVersion": "0.12.0",
+  "description": "Interactively run code blocks in Obsidian with stdin input support. Supports Python, C, C++, Java, Go, JavaScript, TypeScript, Rust, Kotlin and more.",
+  "author": "xkm",
+  "authorUrl": "https://github.com/xkm",
+  "isDesktopOnly": false
+}

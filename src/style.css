@@ -1,0 +1,16 @@
+
+.log-info {
+    color: var(--text-normal)
+}
+
+.log-debug {
+    color: var(--text-accent)
+}
+
+.log-warn {
+    color: var(--text-warning)
+}
+
+.log-error {
+    color: var(--text-error)
+}

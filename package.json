@@ -1,0 +1,39 @@
+{
+  "name": "code-emitter",
+  "description": "An Obsidian plugin that allows code blocks to be executed interactively like in Jupyter Notebooks. Supports languages like Rust, Kotlin, Python, JavaScript, TypeScript etc.",
+  "private": true,
+  "version": "0.4.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build -w -m development",
+    "build": "vite build",
+    "version-bump": "node version.mjs bump",
+    "version": "node version.mjs",
+    "preview": "vite preview",
+    "lint": "eslint",
+    "lint-fix": "eslint --fix"
+  },
+  "dependencies": {
+    "ansicolor": "^2.0.3",
+    "crypto-js": "^4.2.0",
+    "pyodide": "^0.26.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.7.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^22.0.0",
+    "@types/semver": "^7.5.8",
+    "builtin-modules": "3.3.0",
+    "eslint": "^9.7.0",
+    "obsidian": "latest",
+    "sass": "^1.54.8",
+    "semver": "^7.6.3",
+    "solid-js": "^1.8.21",
+    "tslib": "^2.5.0",
+    "typescript": "5.5.4",
+    "typescript-eslint": "^8.0.1",
+    "vite": "^5.4.0",
+    "vite-plugin-solid": "^2.10.2",
+    "vite-plugin-static-copy": "^1.0.6"
+  }
+}
