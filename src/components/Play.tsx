@@ -4,7 +4,7 @@ import backend, { createStdio } from '../backend';
 import Spin from './Spin';
 import Term from './Term';
 import Icon from './Icon';
-// Future: import { needsStdin, supportsStdin } from '../backend/stdin-detect';
+import { needsStdin } from '../backend/stdin-detect';
 
 /** Simple djb2 string hash for cache keys (replaces crypto-js/md5). */
 function hashCode(str: string): string {
@@ -42,6 +42,17 @@ export default (props: {
   const [showInput, setShowInput] = createSignal(false);
 
   const run = async () => {
+    // Interactive input programs would freeze Obsidian since real-time
+    // stdin is not yet supported — show a warning instead of executing.
+    if (needsStdin(props.lang, props.code)) {
+      stdio.clear();
+      stdio.write(
+        'This program requires interactive input, and this feature is under development.\n' +
+        '本程序需要交互式输入，该功能正在开发中。'
+      );
+      return;
+    }
+
     setRunning(true);
     try {
       stdio.setStdin(input());
