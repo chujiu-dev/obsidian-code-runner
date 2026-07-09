@@ -110,7 +110,7 @@ export default (props: {
         <hr class="code-seprator code-seprator-input"/>
         <div class="code-input-area">
           <div class="code-area-header">
-            <span class="code-area-label">输入内容</span>
+            <span></span>
             <span class="button-area-close" onClick={closeInput} title="关闭输入">
               <Icon name="clear"/>
             </span>
@@ -130,7 +130,7 @@ export default (props: {
         <div class="code-output">
           <Show when={running()} fallback={<>
             <div class="code-area-header">
-              <span class="code-area-label">输出内容</span>
+              <span></span>
               <span class="button-area-close" onClick={stdio.clear} title="清除输出">
                 <Icon name="clear"/>
               </span>
