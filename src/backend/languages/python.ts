@@ -1,6 +1,4 @@
-import urlImport from '../../lib/url_import';
 import type { Backend, Stdio } from '../';
-import type { loadPyodide } from 'pyodide/pyodide';
 import type { PyodideInterface } from 'pyodide';
 
 if (typeof process !== 'undefined' && typeof process.browser === 'undefined') {
@@ -55,11 +53,8 @@ export default (function(props?: { cdn: string }) {
   };
   backend.loading = true;
   load = async () => {
-    const loader = await urlImport<typeof loadPyodide>(
-      `${cdn}pyodide.js`,
-      () => ( window.loadPyodide )
-    );
-    engine = await loader({
+    const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.mjs');
+    engine = await pyodideModule.loadPyodide({
       stdin: () => {
         if (stdinIndex < stdinLines.length) {
           return stdinLines[stdinIndex++] + '\n';

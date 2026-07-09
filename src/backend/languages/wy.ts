@@ -1,8 +1,5 @@
-import urlImport from '../../lib/url_import';
 import type { Backend, Stdio } from '..';
 import js from './js';
-
-const cdn = 'https://unpkg.com/@wenyan/core/index.min.js';
 
 export default (function () {
   let wenyan: {
@@ -21,7 +18,8 @@ export default (function () {
   backend.loading = true;
 
   load = async () => {
-    wenyan = await urlImport<typeof wenyan>(cdn, () => window.Wenyan);
+    await import('https://unpkg.com/@wenyan/core/index.min.js');
+    wenyan = window.Wenyan;
     backend.loading = false;
     console.log('wenyan loaded.');
   };
