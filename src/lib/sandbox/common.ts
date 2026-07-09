@@ -18,7 +18,7 @@ export function getTargetValue(target: any, value: any): any {
 
     // some callable function has custom fields, we need to copy the enumerable props to boundValue. such as moment function.
     // use for..in rather than Object.keys.forEach for performance reason
-    // eslint-disable-next-line guard-for-in,no-restricted-syntax
+    // eslint-disable-next-line guard-for-in,no-restricted-syntax -- for..in is faster than Object.keys for enumerable property enumeration
     for (const key in value) {
       boundValue[key] = value[key];
     }

@@ -1,7 +1,7 @@
 {
   "id": "code-runner",
   "name": "Code Runner",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "0.12.0",
   "description": "Interactively run code blocks with stdin input support. Supports Python, C, C++, Java, Go, JavaScript, TypeScript, Rust, Kotlin and more.",
   "author": "chujiu-dev",

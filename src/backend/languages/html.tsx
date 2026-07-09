@@ -8,9 +8,9 @@ export default async function (code: string, stdio: Stdio): Promise<void> {
 
 
 const HtmlViewer = (props: { code: string }) => {
-  // eslint-disable-next-line prefer-const
+  // eslint-disable-next-line prefer-const -- SolidJS ref callbacks reassign these variables, let is required
   let host: HTMLDivElement | undefined = undefined;
-  // eslint-disable-next-line prefer-const
+  // eslint-disable-next-line prefer-const -- SolidJS ref callbacks reassign these variables, let is required
   let el: HTMLDivElement | undefined = undefined;
 
   let shadow: ShadowRoot | undefined = undefined;

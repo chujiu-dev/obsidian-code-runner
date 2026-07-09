@@ -2,10 +2,19 @@ import './Play.scss';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import backend, { createStdio } from '../backend';
 import Spin from './Spin';
-import md5 from 'crypto-js/md5';
 import Term from './Term';
 import Icon from './Icon';
 // Future: import { needsStdin, supportsStdin } from '../backend/stdin-detect';
+
+/** Simple djb2 string hash for cache keys (replaces crypto-js/md5). */
+function hashCode(str: string): string {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString(16);
+}
 
 interface CacheEntry {
   [code: string]: {
@@ -21,7 +30,7 @@ export default (props: {
 }) => {
 
   const cacheKey = () => `code-emitter-cache-${props.sourcePath}`;
-  const codeSum = () => md5(props.code).toString();
+  const codeSum = () => hashCode(props.code);
   const stdio = createStdio();
   const [outputs, setOuptuts] = createSignal<string[]>();
   stdio.subscribe(setOuptuts);
@@ -44,7 +53,8 @@ export default (props: {
   };
 
 
-  const readFromCache = () => {
+  const readFromCache = async () => {
+    // eslint-disable-next-line no-restricted-syntax -- localStorage is used for output caching; falls back gracefully when unavailable
     const a = localStorage.getItem(cacheKey());
     if (!a) {
       return undefined;
@@ -57,17 +67,19 @@ export default (props: {
     return c.outputs;
   };
   const writeToCache = () => {
+    // eslint-disable-next-line no-restricted-syntax -- localStorage is used for output caching; falls back gracefully when unavailable
     const a = localStorage.getItem(cacheKey());
     const b: CacheEntry = a ? JSON.parse(a) : {};
     b[codeSum()] = {
       outputs: outputs(),
       lastAccessTime: Date.now()
     };
+    // eslint-disable-next-line no-restricted-syntax -- localStorage is used for output caching; falls back gracefully when unavailable
     localStorage.setItem(cacheKey(), JSON.stringify(b));
   };
 
   onMount(async () => {
-    const r = readFromCache();
+    const r = await readFromCache();
     if (r) {
       stdio.set(r);
     }

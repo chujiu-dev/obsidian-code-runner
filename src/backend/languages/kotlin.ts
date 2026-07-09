@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { Stdio } from '..';
 import { ClientAgent } from '../../version';
 
@@ -26,7 +27,8 @@ export default async function(code: string, stdio: Stdio): Promise<void> {
       }
     ]
   };
-  const res = await fetch(url, {
+  const res = await requestUrl({
+    url,
     method: 'POST',
     headers: {
       'User-Agent': ClientAgent,
@@ -44,7 +46,7 @@ export default async function(code: string, stdio: Stdio): Promise<void> {
       }>
     },
     text: string
-  } = await res.json();
+  } = res.json;
   if (data.errors && Object.keys(data.errors).length > 0) {
     for (const errors of Object.values(data.errors)) {
       for (const error of errors) {

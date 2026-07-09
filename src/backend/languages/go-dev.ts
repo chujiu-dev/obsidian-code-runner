@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { Stdio } from '..';
 
 const url = 'https://go.dev/_/compile?backend=';
@@ -9,17 +10,14 @@ export default async function(code: string, _stdio: Stdio): Promise<void> {
     withVet: 'true'
   });
 
-  const res = await fetch(
+  const res = await requestUrl({
     url,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-      },
-      body: data,
-      mode: 'no-cors'
-    }
-  );
-  const json = await res.json();
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+    },
+    body: data.toString()
+  });
+  const json = res.json;
   return json.Events[0].Message;
 }

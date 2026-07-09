@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { Stdio } from '..';
 
 const url = 'https://play.rust-lang.org/execute';
@@ -13,17 +14,15 @@ export default async function(code: string, stdio: Stdio): Promise<void> {
     'backtrace': false
   };
 
-  const res = await fetch(
+  const res = await requestUrl({
     url,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    }
-  );
-  const out = await res.json();
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  const out = res.json;
   if (out.success) {
     stdio.stdout(out.stdout)
   } else {

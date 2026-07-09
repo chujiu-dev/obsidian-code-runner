@@ -12,6 +12,7 @@ export default async function (code: string, output: Stdio): Promise<void> {
       Object.assign(console, wrapConsole(output));
       sandbox.active();
       try {
+        // eslint-disable-next-line no-eval -- eval is required for sandboxed user code execution in the JavaScript/TypeScript backend
         await eval(code);
       } catch (e) {
         console.error(e);

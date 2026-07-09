@@ -2,7 +2,15 @@ import { defineConfig, UserConfig, Plugin, loadEnv } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import path from 'path';
-import builtins from 'builtin-modules';
+// Replaces the deprecated 'builtin-modules' package with a static list of Node.js built-in modules
+const builtins: readonly string[] = [
+  'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console',
+  'constants', 'crypto', 'dgram', 'diagnostics_channel', 'dns', 'domain',
+  'events', 'fs', 'http', 'http2', 'https', 'inspector', 'module', 'net',
+  'os', 'path', 'perf_hooks', 'process', 'punycode', 'querystring', 'readline',
+  'repl', 'stream', 'string_decoder', 'test', 'timers', 'tls', 'trace_events',
+  'tty', 'url', 'util', 'v8', 'vm', 'worker_threads', 'zlib',
+];
 import * as fsp from 'fs/promises';
 import { normalize } from 'path';
 import { rm } from 'fs/promises';

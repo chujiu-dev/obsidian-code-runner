@@ -1,4 +1,4 @@
-/* eslint-disable no-param-reassign */
+/* eslint-disable no-param-reassign -- proxy trap handlers must mutate target object properties directly */
 // https://github.com/umijs/qiankun/blob/master/src/sandbox/index.ts
 
  import type { SandBox } from './interfaces';
@@ -295,7 +295,8 @@ function makeScope(fake: Record<PropertyKey, any>, p: PropertyKey) {
          }
  
          if (p === 'eval') {
-           return eval;
+          // eslint-disable-next-line no-eval -- returning native eval is required for sandboxed code execution
+          return eval;
          }
 
          const value = propertiesWithGetter.has(p)
@@ -386,4 +387,4 @@ function makeScope(fake: Record<PropertyKey, any>, p: PropertyKey) {
      activeSandboxCount++;
    }
  }
- 
+ /* eslint-enable no-param-reassign */
