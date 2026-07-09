@@ -387,4 +387,4 @@ function makeScope(fake: Record<PropertyKey, any>, p: PropertyKey) {
      activeSandboxCount++;
    }
  }
- /* eslint-enable no-param-reassign */
+ /* eslint-enable no-param-reassign -- restore default rule after proxy trap handlers complete */

@@ -1,6 +1,6 @@
 
 
-// eslint-disable-next-line no-new-func -- Function constructor is the only reliable way to obtain the native global object reference
+// eslint-disable-next-line no-implied-eval -- Function constructor is the only reliable way to obtain the native global object reference
 export const nativeGlobal = new Function('return this')();
 
 const fnRegexCheckCacheMap = new WeakMap<any | FunctionConstructor, boolean>();
