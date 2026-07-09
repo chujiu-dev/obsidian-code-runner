@@ -46,6 +46,21 @@ export function createStdio<T = Message>() {
 
   const getStdin = () => stdinData;
 
+  // Interactive stdin: called by the Python backend when the Web Worker
+  // requests real-time user input via SharedArrayBuffer.
+  let stdinResolver: ((data: string) => void) | null = null;
+  const requestStdin = async (): Promise<string> => {
+    return new Promise<string>((resolve) => {
+      stdinResolver = resolve;
+    });
+  };
+  const provideStdin = (data: string) => {
+    if (stdinResolver) {
+      stdinResolver(data);
+      stdinResolver = null;
+    }
+  };
+
 
   return {
     subscribe,
@@ -58,5 +73,7 @@ export function createStdio<T = Message>() {
     set,
     setStdin,
     getStdin,
+    requestStdin,
+    provideStdin,
   };
 }

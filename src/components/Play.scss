@@ -116,6 +116,25 @@
     }
   }
 
+  // Interactive stdin: inline input shown when Python code calls input()
+  .code-interactive-stdin {
+    margin-top: var(--size-2-2);
+
+    .code-interactive-stdin-input {
+      width: 100%;
+      padding: var(--size-4-1) var(--size-4-2);
+      border: 1px solid var(--interactive-accent);
+      border-radius: var(--radius-s);
+      background-color: var(--background-primary);
+      color: var(--text-normal);
+      font-family: var(--font-monospace);
+      font-size: 0.85em;
+      resize: none;
+      outline: none;
+      box-sizing: border-box;
+    }
+  }
+
 }
   .code-emitter-actions {
     display: flex;

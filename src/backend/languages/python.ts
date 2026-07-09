@@ -1,79 +1,96 @@
 import type { Backend, Stdio } from '../';
-import type { PyodideInterface } from 'pyodide';
-
-if (typeof process !== 'undefined' && typeof process.browser === 'undefined') {
-  process.browser = true;
-}
 
 const default_cdn = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/';
 
-const setMplTarget = (target?: HTMLElement) => {
-  if (target) {
-    document['pyodideMplTarget'] = target;
-  } else {
-    delete document['pyodideMplTarget'];
+// SharedArrayBuffer: the communication channel for interactive stdin.
+// Created once and reused across all Python runs.
+const SAB_SIZE = 4096;
+const sab = new SharedArrayBuffer(SAB_SIZE);
+const statusView = new Int32Array(sab, 0, 1);   // 0=waiting, 1=data ready
+const lengthView = new Int32Array(sab, 4, 1);    // byte length of stdin data
+const bufferView = new Uint8Array(sab, 8);       // UTF-8 stdin buffer
+const encoder = new TextEncoder();
+
+let worker: Worker | null = null;
+let workerReady = false;
+
+function getWorker(): Worker {
+  if (!worker) {
+    worker = new Worker(
+      new URL('../pyodide.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    // Transfer ownership of the SAB to the worker
+    worker.postMessage({ type: 'init', sab });
+    workerReady = true;
   }
+  return worker;
 }
 
-let cache: { cdn: string, backend: Backend } | null = null;
+let cache: { cdn: string; backend: Backend } | null = null;
 
-export default (function(props?: { cdn: string }) {
+export default (function (props?: { cdn: string }) {
   const cdn = props?.cdn ?? default_cdn;
 
   if (cache?.cdn === cdn) {
     return cache.backend;
   }
 
-  let engine: PyodideInterface | null = null;
-  let stdio: Stdio | null = null;
-  let load: (() => Promise<void>) | null = null;
-
-  // Stdin buffer: shared between backend (writer) and stdin callback (reader)
-  let stdinLines: string[] = [];
-  let stdinIndex = 0;
+  const w = getWorker();
 
   const backend: Backend = async (code, output) => {
-    stdio = output;
-    if (!engine) {
-      await load();
-    }
-    try {
-      // Reset stdin buffer from pre-provided input before each run
-      const inputStr = output.getStdin();
-      stdinLines = inputStr ? inputStr.split('\n') : [];
-      stdinIndex = 0;
+    return new Promise<void>((resolve) => {
+      const onMessage = async (e: MessageEvent) => {
+        switch (e.data.type) {
+          case 'stdout':
+            output.stdout(e.data.text);
+            break;
 
-      setMplTarget(output.viewEl);
-      await engine.runPythonAsync(code);
-    } catch (e) {
-      output.stderr(e);
-    } finally {
-      setMplTarget(undefined);
-    }
+          case 'stderr':
+            output.stderr(e.data.text);
+            break;
+
+          case 'stdin':
+            // Worker is blocked waiting for stdin data.
+            // Request input from the UI callback.
+            if (output.requestStdin) {
+              const data = await output.requestStdin();
+              const encoded = encoder.encode(data);
+              lengthView[0] = encoded.length;
+              bufferView.set(encoded.subarray(0, Math.min(encoded.length, SAB_SIZE - 8)));
+              Atomics.store(statusView, 0, 1);
+              Atomics.notify(statusView, 0);
+            } else {
+              // No interactive callback — send empty line
+              lengthView[0] = 0;
+              Atomics.store(statusView, 0, 1);
+              Atomics.notify(statusView, 0);
+            }
+            break;
+
+          case 'complete':
+            w.removeEventListener('message', onMessage);
+            resolve();
+            break;
+
+          case 'error':
+            output.stderr(e.data.error);
+            w.removeEventListener('message', onMessage);
+            resolve();
+            break;
+        }
+      };
+
+      w.addEventListener('message', onMessage);
+      w.postMessage({ type: 'run', code, cdn });
+    });
   };
   backend.loading = true;
-  load = async () => {
-    const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.mjs');
-    engine = await pyodideModule.loadPyodide({
-      stdin: () => {
-        if (stdinIndex < stdinLines.length) {
-          return stdinLines[stdinIndex++] + '\n';
-        }
-        return '\n';
-      },
-      indexURL: cdn,
-      stdout: (s) => stdio?.stdout(s),
-      stderr:(s) => stdio?.stderr(s)
-    });
-    await engine.loadPackage('micropip');
-    console.log('python loaded.');
-    backend.loading = false;
-  };
 
-  cache = {
-    cdn,
-    backend
-  };
+  // Mark as loaded immediately — actual loading happens in the worker
+  backend.loading = false;
+
+  cache = { cdn, backend };
 
   return backend;
 })();

@@ -41,16 +41,26 @@ export default (props: {
   const [input, setInput] = createSignal('');
   const [showInput, setShowInput] = createSignal(false);
 
+  // Interactive stdin: shown when the Python Web Worker requests real-time input
+  const [interactiveStdin, setInteractiveStdin] = createSignal(false);
+  const [stdinPrompt, setStdinPrompt] = createSignal('');
+  let stdinInputRef: HTMLTextAreaElement | undefined;
+
   const run = async () => {
-    // Interactive input programs would freeze Obsidian since real-time
-    // stdin is not yet supported — show a warning instead of executing.
-    if (needsStdin(props.lang, props.code)) {
+    // Languages other than Python cannot do real-time interactive input yet
+    if (needsStdin(props.lang, props.code) && props.lang !== 'python') {
       stdio.clear();
       stdio.write(
         'This program requires interactive input, and this feature is under development.\n' +
         '本程序需要交互式输入，该功能正在开发中。'
       );
       return;
+    }
+
+    // Python with stdin uses Web Worker + interactive input (no pre-fill needed)
+    if (needsStdin(props.lang, props.code) && props.lang === 'python') {
+      stdio.clear();
+      setInteractiveStdin(true);
     }
 
     setRunning(true);
@@ -60,7 +70,17 @@ export default (props: {
       await engine(props.code, stdio);
     } finally {
       setRunning(false);
+      setInteractiveStdin(false);
     }
+  };
+
+  // Called when the user presses Enter in the interactive stdin textarea
+  const submitInteractiveStdin = () => {
+    const data = stdinPrompt();
+    setStdinPrompt('');
+    stdio.provideStdin(data);
+    // Refocus the textarea for the next input() call
+    setTimeout(() => stdinInputRef?.focus(), 50);
   };
 
   const closeInput = () => {
@@ -98,10 +118,6 @@ export default (props: {
     if (r) {
       stdio.set(r);
     }
-    // Future: auto-detect stdin need
-    // if (needsStdin(props.lang, props.code)) {
-    //   setShowInput(true);
-    // }
   });
 
   onCleanup(writeToCache);
@@ -152,6 +168,26 @@ export default (props: {
 
             <div class="loadding">
               <Spin/>
+            </div>
+          </Show>
+
+          {/* Interactive stdin: shown when Python code calls input() */}
+          <Show when={interactiveStdin()}>
+            <div class="code-interactive-stdin">
+              <textarea
+                ref={stdinInputRef}
+                class="code-interactive-stdin-input"
+                placeholder="Type input and press Enter..."
+                value={stdinPrompt()}
+                onInput={(e) => setStdinPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitInteractiveStdin();
+                  }
+                }}
+                rows={1}
+              />
             </div>
           </Show>
         </div>
