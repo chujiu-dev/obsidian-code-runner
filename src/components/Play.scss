@@ -26,39 +26,76 @@
     background-color: var(--background-modifier-hover);
   }
 
-  .button-clear {
-    opacity: 0;
-    top: var(--size-2-2);
-    display: flex;
-    padding: var(--size-2-2) var(--size-2-3);
-    position: absolute;
-    inset-inline-end: var(--size-2-2);
-    border-radius: var(--radius-s);
-    cursor: var(--cursor);
-  }
-
-  @media (hover:hover) {
-    .code-output:hover .button-clear {
-      opacity: 1;
-    }
-  }
-
-  @media (hover:hover) {
-    .code-output:hover .button-clear:hover {
-      background-color: var(--background-modifier-hover);
-    }
-  }
-
-
   .loadding {
     display: flex;
     justify-content: center;
     align-items: center;
   }
 
+  // Gray thick separator line between code block and input/output areas
   hr.code-seprator {
-    margin-top: 1em;
-    margin-bottom: 0.5em;
+    margin-top: 0.75em;
+    margin-bottom: 0.25em;
+    border: none;
+    border-top: 2px solid var(--background-modifier-border);
+  }
+
+  // Extra spacing when separator is right before the input area
+  hr.code-seprator-input {
+    margin-top: 0.5em;
+  }
+
+  // Shared header for input and output areas
+  .code-area-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--size-2-1);
+  }
+
+  .code-area-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-muted);
+    user-select: none;
+  }
+
+  .button-area-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-s);
+    cursor: var(--cursor);
+    opacity: 0.5;
+    flex-shrink: 0;
+
+    &:hover {
+      opacity: 1;
+      background-color: var(--background-modifier-hover);
+    }
+  }
+
+  .code-input-area {
+    .code-emitter-input {
+      width: 100%;
+      margin-top: 0;
+      padding: var(--size-4-2);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: var(--radius-s);
+      background-color: var(--background-primary);
+      color: var(--text-normal);
+      font-family: var(--font-monospace);
+      font-size: 0.85em;
+      resize: vertical;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .code-emitter-input:focus {
+      border-color: var(--interactive-accent);
+    }
   }
 
   .code-output {
@@ -99,25 +136,6 @@
 
   .button-input-toggle:hover {
     background-color: var(--background-modifier-hover);
-  }
-
-  .code-emitter-input {
-    width: 100%;
-    margin-top: 0.5em;
-    padding: var(--size-4-2);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-s);
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-family: var(--font-monospace);
-    font-size: 0.85em;
-    resize: vertical;
-    outline: none;
-    box-sizing: border-box;
-  }
-
-  .code-emitter-input:focus {
-    border-color: var(--interactive-accent);
   }
 
 .code-emitter-actions .button-play {

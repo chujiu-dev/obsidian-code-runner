@@ -52,6 +52,10 @@ export default (props: {
     }
   };
 
+  const closeInput = () => {
+    setShowInput(false);
+    setInput('');
+  };
 
   const readFromCache = async () => {
     // eslint-disable-next-line no-restricted-syntax -- localStorage is used for output caching; falls back gracefully when unavailable
@@ -103,22 +107,36 @@ export default (props: {
       </Show>
 
       <Show when={showInput()}>
-        <textarea
-          class="code-emitter-input"
-          placeholder="Standard input data (leave empty if none)&#10;Example:&#10;5&#10;1 2 3 4 5"
-          value={input()}
-          onInput={(e) => setInput(e.target.value)}
-          rows={3}
-        />
+        <hr class="code-seprator code-seprator-input"/>
+        <div class="code-input-area">
+          <div class="code-area-header">
+            <span class="code-area-label">输入内容</span>
+            <span class="button-area-close" onClick={closeInput} title="关闭输入">
+              <Icon name="clear"/>
+            </span>
+          </div>
+          <textarea
+            class="code-emitter-input"
+            placeholder="Standard input data (leave empty if none)&#10;Example:&#10;5&#10;1 2 3 4 5"
+            value={input()}
+            onInput={(e) => setInput(e.target.value)}
+            rows={3}
+          />
+        </div>
       </Show>
 
       <Show when={running() || hasResult() }>
         <hr class="code-seprator"/>
         <div class="code-output">
           <Show when={running()} fallback={<>
+            <div class="code-area-header">
+              <span class="code-area-label">输出内容</span>
+              <span class="button-area-close" onClick={stdio.clear} title="清除输出">
+                <Icon name="clear"/>
+              </span>
+            </div>
             <div>{stdio.viewEl}</div>
             <Term lines={outputs()}/>
-            <i aria-label="clear" class="button-clear" onClick={stdio.clear}><Icon name="clear"/></i>
           </>}>
 
             <div class="loadding">
