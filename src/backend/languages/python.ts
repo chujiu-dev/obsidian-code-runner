@@ -1,7 +1,19 @@
-import type { Backend } from '../';
+import type { Backend, Stdio } from '../';
 import { extractInputPrompts } from '../stdin-detect';
 
 const default_cdn = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/';
+
+// ── Pyodide type definitions ──
+interface PyodideEngine {
+  runPythonAsync(code: string): Promise<void>;
+  loadPackage(name: string): Promise<void>;
+  setStdout(options: { batched: (s: string) => void }): void;
+  setStderr(options: { batched: (s: string) => void }): void;
+  globals: {
+    get(name: string): unknown;
+    set(name: string, value: unknown): void;
+  };
+}
 
 // ── SAB detection (module init, runs once) ──
 const hasSAB = (() => {
@@ -131,22 +143,23 @@ function workerSource(): string {
 }
 
 // ── Main-thread Pyodide engine (singleton) ──
-let engine: any = null;
-let enginePromise: Promise<any> | null = null;
+let engine: PyodideEngine | null = null;
+let enginePromise: Promise<PyodideEngine> | null = null;
 
-async function getEngine(cdn: string): Promise<any> {
+async function getEngine(cdn: string): Promise<PyodideEngine> {
   if (engine) return engine;
   if (enginePromise) return enginePromise;
 
   enginePromise = (async () => {
     console.log('[Code Runner] Loading Pyodide on main thread...');
-    const g = globalThis as any;
+     
+    const g = window as unknown as Record<string, unknown>;
     const savedProcess = g.process;
     g.process = { browser: true };
 
-    let mod: any;
     try {
-      mod = await import(cdn + 'pyodide.mjs');
+       
+      const mod = await import(/* @vite-ignore */ cdn + 'pyodide.mjs') as { loadPyodide: (opts: { indexURL: string }) => Promise<PyodideEngine> };
       engine = await mod.loadPyodide({ indexURL: cdn });
     } finally {
       g.process = savedProcess;
@@ -216,14 +229,15 @@ function createMainThreadBackend(cdn: string): Backend {
       eng.setStderr({ batched: (s: string) => output.stderr(s) });
 
       if (output.viewEl) {
-        (document as any)['pyodideMplTarget'] = output.viewEl;
+         
+        (activeDocument as unknown as Record<string, unknown>)['pyodideMplTarget'] = output.viewEl;
       }
 
       // ── Step 1: Run setup code to define __my_input ──
       try {
         await eng.runPythonAsync(setupCode);
-      } catch (e: any) {
-        output.stderr('[Setup Error] ' + (e.message || String(e)));
+      } catch (e: unknown) {
+        output.stderr('[Setup Error] ' + (e instanceof Error ? e.message : String(e)));
         return;
       }
 
@@ -235,21 +249,22 @@ function createMainThreadBackend(cdn: string): Backend {
           return;
         }
         eng.globals.set('input', myInput);
-      } catch (e: any) {
-        output.stderr('[Setup Error] ' + (e.message || String(e)));
+      } catch (e: unknown) {
+        output.stderr('[Setup Error] ' + (e instanceof Error ? e.message : String(e)));
         return;
       }
 
       // ── Step 3: Run user code ──
       try {
         await eng.runPythonAsync(code);
-      } catch (e: any) {
-        output.stderr(e.message || String(e));
+      } catch (e: unknown) {
+        output.stderr(e instanceof Error ? e.message : String(e));
       }
-    } catch (e: any) {
-      output.stderr(e.message || String(e));
+    } catch (e: unknown) {
+      output.stderr(e instanceof Error ? e.message : String(e));
     } finally {
-      delete (document as any)['pyodideMplTarget'];
+       
+      delete (activeDocument as unknown as Record<string, unknown>)['pyodideMplTarget'];
     }
   };
 
@@ -266,7 +281,7 @@ function createWorkerBackend(cdn: string): Backend {
   let dataView: Uint8Array | null = null;
 
   // Per-run state
-  let currentOutput: any = null;
+  let currentOutput: Stdio | null = null;
   let stdinLines: string[] = [];
   let stdinIndex = 0;
   let stdinEmptyCount = 0;
@@ -288,50 +303,50 @@ function createWorkerBackend(cdn: string): Backend {
     worker.onmessage = (event: MessageEvent) => {
       const data = event.data;
       switch (data.type) {
-        case 'stdout':
-          currentOutput?.stdout(data.text);
-          break;
-        case 'stderr':
-          currentOutput?.stderr(data.text);
-          break;
-        case 'stdin':
-          // __my_input in Python already consumed pre-fill lines internally.
-          // Any stdin message from the Worker is a real interactive request
-          // (waitForInteractiveStdin always sends interactive:true).
-          if (data.interactive) {
-            const prompt = data.prompt || '';
-            currentOutput?.requestStdin(prompt).then((input: string) => {
-              writeStdinToSAB(input);
-            });
-          } else if (stdinIndex < stdinLines.length) {
-            // Legacy path: should not normally be reached with current Worker code.
-            stdinEmptyCount = 0;
-            writeStdinToSAB(stdinLines[stdinIndex++]);
-          } else {
-            stdinEmptyCount++;
-            if (stdinEmptyCount >= 10) {
-              currentOutput?.stderr(
-                '⚠️ 预输入数据不完整！已消耗所有 ' + stdinLines.length + ' 行预填数据。\n' +
+      case 'stdout':
+        currentOutput?.stdout(data.text);
+        break;
+      case 'stderr':
+        currentOutput?.stderr(data.text);
+        break;
+      case 'stdin':
+        // __my_input in Python already consumed pre-fill lines internally.
+        // Any stdin message from the Worker is a real interactive request
+        // (waitForInteractiveStdin always sends interactive:true).
+        if (data.interactive) {
+          const prompt = data.prompt || '';
+          currentOutput?.requestStdin(prompt).then((input: string) => {
+            writeStdinToSAB(input);
+          });
+        } else if (stdinIndex < stdinLines.length) {
+          // Legacy path: should not normally be reached with current Worker code.
+          stdinEmptyCount = 0;
+          writeStdinToSAB(stdinLines[stdinIndex++]);
+        } else {
+          stdinEmptyCount++;
+          if (stdinEmptyCount >= 10) {
+            currentOutput?.stderr(
+              '⚠️ 预输入数据不完整！已消耗所有 ' + stdinLines.length + ' 行预填数据。\n' +
                 '程序继续请求输入（已连续10次空输入）。\n' +
                 '请在输入框中补充更多行数据后重新运行。\n\n' +
                 'Insufficient stdin! Exhausted all ' + stdinLines.length + ' pre-filled lines.\n' +
                 'Please add more lines and re-run.'
-              );
-              runResolve?.();
-              return;
-            }
-            writeStdinToSAB('');
+            );
+            runResolve?.();
+            return;
           }
-          break;
-        case 'complete':
-          runResolve?.();
-          break;
-        case 'error':
-          currentOutput?.stderr(data.error);
-          runResolve?.();
-          break;
-        default:
-          break;
+          writeStdinToSAB('');
+        }
+        break;
+      case 'complete':
+        runResolve?.();
+        break;
+      case 'error':
+        currentOutput?.stderr(data.error);
+        runResolve?.();
+        break;
+      default:
+        break;
       }
     };
 
@@ -369,8 +384,8 @@ function createWorkerBackend(cdn: string): Backend {
       try {
         const w = getWorker();
         w.postMessage({ type: 'run', code, stdinLines });
-      } catch (e: any) {
-        output.stderr(e.message || String(e));
+      } catch (e: unknown) {
+        output.stderr(e instanceof Error ? e.message : String(e));
         resolve();
       }
     });

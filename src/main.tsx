@@ -53,13 +53,13 @@ export default class CodeEmitterPlugin extends Plugin {
 
       const outputs: string[] = [];
       const stdio: Stdio = {
-        subscribe: (sub) => { /* no-op for programmatic use */ return () => {}; },
+        subscribe: (_sub) => { /* no-op for programmatic use */ return () => {}; },
         write: (...data) => { outputs.push(data.join(',')); },
         stdout: (...data) => { outputs.push(data.join(',')); },
         stderr: (...data) => { outputs.push(data.join(',')); },
-        viewEl: document.createElement('div'),
+        viewEl: activeDocument.createElement('div'),
         clear: () => { outputs.length = 0; },
-        update: (fn) => { /* no-op */ },
+        update: (_fn) => { /* no-op */ },
         set: (v) => { outputs.splice(0, outputs.length, ...(v as unknown as string[])); },
         setStdin: () => {},
         getStdin: () => stdin ?? '',
@@ -106,8 +106,8 @@ export default class CodeEmitterPlugin extends Plugin {
     });
   }
 
-  async unload() {
-    await this.saveSettings();
+  unload(): void {
+    this.saveSettings().catch(console.error);
     super.unload();
   }
 

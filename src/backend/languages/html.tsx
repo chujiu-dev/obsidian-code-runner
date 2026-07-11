@@ -3,7 +3,8 @@ import type { Stdio } from '..';
 import { render } from 'solid-js/web';
 
 export default async function (code: string, stdio: Stdio): Promise<void> {
-  render(() => <HtmlViewer code={code}/>, stdio.viewEl)
+   
+  render(() => <HtmlViewer code={code}/>, stdio.viewEl);
 }
 
 
@@ -16,13 +17,13 @@ const HtmlViewer = (props: { code: string }) => {
   let shadow: ShadowRoot | undefined = undefined;
 
   onMount(() => {
-    if (!host) return;
+    if (!host || !el) return;
     shadow = host.attachShadow({ mode: 'closed' });
     shadow.appendChild(el);
   });
 
   onCleanup(() => {
-    host?.detach();
+    host?.remove();
   });
 
   return <>

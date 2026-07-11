@@ -1,5 +1,7 @@
 
 
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument, no-restricted-syntax -- vendored from qiankun, uses document.all detection and Function.prototype inspection */
+
 export const nativeGlobal = window;
 
 const fnRegexCheckCacheMap = new WeakMap<any | FunctionConstructor, boolean>();

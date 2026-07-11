@@ -20,7 +20,7 @@ export default  async function(code: string, stdio: Stdio): Promise<void> {
     },
     body: JSON.stringify(data)
   });
-  const json = res.json;
+  const json = res.json as { run_request: { run: { stderr?: string; stdout?: string } } };
   const codeResponse = json.run_request.run;
   // the response doesnt have success
   if (codeResponse.stderr) {

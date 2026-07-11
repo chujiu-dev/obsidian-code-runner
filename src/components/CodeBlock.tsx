@@ -5,6 +5,7 @@ import { loadPrism } from 'obsidian';
 export default (props: { lang: string, code: string, sourcePath: string } ) => {
   const highlightElement = async (el: HTMLElement) => {
     const prism = await loadPrism();
+     
     prism.highlightElement(el);
   };
   const language = () => `language-${props.lang}`;

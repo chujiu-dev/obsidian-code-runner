@@ -22,7 +22,7 @@ export default async function(code: string, stdio: Stdio): Promise<void> {
     },
     body: JSON.stringify(data)
   });
-  const out = res.json;
+  const out = res.json as { success: boolean; stdout: string; stderr: string };
   if (out.success) {
     stdio.stdout(out.stdout)
   } else {

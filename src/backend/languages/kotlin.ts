@@ -38,15 +38,15 @@ export default async function(code: string, stdio: Stdio): Promise<void> {
     body: JSON.stringify(body)
   });
 
-  const data: {
+  const data = res.json as {
     errors: {
       [f: string]: Array<{
-        message: string,
-        severity: string
-      }>
-    },
-    text: string
-  } = res.json;
+        message: string;
+        severity: string;
+      }>;
+    };
+    text: string;
+  };
   if (data.errors && Object.keys(data.errors).length > 0) {
     for (const errors of Object.values(data.errors)) {
       for (const error of errors) {

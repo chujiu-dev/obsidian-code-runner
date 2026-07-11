@@ -12,7 +12,7 @@ export default async function (code: string, output: Stdio): Promise<void> {
       Object.assign(console, wrapConsole(output));
       sandbox.active();
       try {
-        // eslint-disable-next-line no-eval -- eval is required for sandboxed user code execution in the JavaScript/TypeScript backend
+         
         await eval(code);
       } catch (e) {
         console.error(e);
@@ -29,7 +29,7 @@ export default async function (code: string, output: Stdio): Promise<void> {
 const wrapConsole = ({ update }: Stdio) => {
   const prettyWrite = (name: string, data: string[]): void => {
     const output = `<div class="log-${name}">${data.join(',')}</div>`;
-    update(n => [...n, output as unknown as string]);
+    update(n => [...n, output]);
   };
 
   const log = (...data: string[]) => prettyWrite('info', data);

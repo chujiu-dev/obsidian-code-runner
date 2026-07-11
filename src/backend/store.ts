@@ -27,7 +27,7 @@ export function createStdio<T = Message>() {
     update(n => [...n, msg as unknown as T]);
   };
 
-  const viewEl = document.createElement('div');
+  const viewEl = activeDocument.createElement('div');
   const clear = () => {
     set([]);
     viewEl.empty();

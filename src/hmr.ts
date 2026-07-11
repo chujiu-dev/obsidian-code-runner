@@ -1,6 +1,5 @@
 import type { Plugin } from 'obsidian';
-import { debounce, Platform } from 'obsidian';
-import { normalize, join } from 'path';
+import { debounce, Platform, normalizePath } from 'obsidian';
 
 declare global {
     interface Window {
@@ -25,7 +24,7 @@ const hmr = (plugin: Plugin, wait= 500) => {
   const {
     app: { vault },
   } = plugin;
-  const entry = normalize(join(pluginDir, 'main.js'));
+  const entry = normalizePath(pluginDir + '/main.js');
   const onChange = async (file: string) => {
     if (file.startsWith(pluginDir)) {
       if (!await adapter.exists(entry)) {

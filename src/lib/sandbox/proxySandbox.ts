@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign -- proxy trap handlers must mutate target object properties directly */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument, no-restricted-syntax, no-prototype-builtins, @typescript-eslint/no-empty-object-type -- vendored from qiankun, uses Proxy traps, dynamic property access, and sandbox-escape prevention patterns */
 // https://github.com/umijs/qiankun/blob/master/src/sandbox/index.ts
 
  import type { SandBox } from './interfaces';

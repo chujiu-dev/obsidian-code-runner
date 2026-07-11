@@ -12,9 +12,9 @@ export default async function (code: string, output: StdIO): Promise<void> {
   });
 
   const json = res.json as {
-    output: string,
-    buildOutput: string,
-    error: string
+    output: string;
+    buildOutput: string;
+    error: string;
   };
 
   if (json.error?.length > 0) {

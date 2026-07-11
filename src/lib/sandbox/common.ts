@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument, no-restricted-syntax, no-prototype-builtins -- vendored from qiankun, uses dynamic property access and Function.prototype manipulation by design */
+
 import { isBoundedFunction, isCallable, isConstructable } from './utils';
 
 

@@ -150,7 +150,7 @@ export default (props: {
   };
 
   const readFromCache = async () => {
-    // eslint-disable-next-line no-restricted-syntax
+     
     const a = localStorage.getItem(cacheKey());
     if (!a) {
       return undefined;
@@ -163,14 +163,14 @@ export default (props: {
     return c.outputs;
   };
   const writeToCache = () => {
-    // eslint-disable-next-line no-restricted-syntax
+     
     const a = localStorage.getItem(cacheKey());
     const b: CacheEntry = a ? JSON.parse(a) : {};
     b[codeSum()] = {
       outputs: outputs(),
       lastAccessTime: Date.now()
     };
-    // eslint-disable-next-line no-restricted-syntax
+     
     localStorage.setItem(cacheKey(), JSON.stringify(b));
   };
 
@@ -181,7 +181,7 @@ export default (props: {
     stdio.onStdinRequest((prompt: string) => {
       setInteractivePrompt(prompt);
       setInteractiveInput('');
-      setTimeout(() => interactiveInputRef?.focus(), 0);
+      window.setTimeout(() => interactiveInputRef?.focus(), 0);
     });
   });
 
@@ -201,10 +201,10 @@ export default (props: {
     <div class="code-emitter-block solid">
       <Show when={ !running() && !hasResult() && !showInput()}>
         <div class="code-emitter-actions">
-          <i aria-label="toggle-input" class="button-input-toggle" onClick={() => { showInput() ? closeInput() : showInputForm(); }} title="Toggle input area">
+          <i aria-label="toggle-input" class="button-input-toggle" onClick={() => { if (showInput()) closeInput(); else showInputForm(); }} title="Toggle input area">
             <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" width="0.7em" height="0.6em" viewBox="0 0 160 112"><rect x="12" y="10" width="136" height="92" rx="4" fill="none" stroke="currentColor" stroke-width="20"/><circle cx="41" cy="36" r="7" fill="currentColor"/><circle cx="67" cy="36" r="7" fill="currentColor"/><circle cx="93" cy="36" r="7" fill="currentColor"/><circle cx="119" cy="36" r="7" fill="currentColor"/><circle cx="41" cy="58" r="7" fill="currentColor"/><circle cx="67" cy="58" r="7" fill="currentColor"/><circle cx="93" cy="58" r="7" fill="currentColor"/><circle cx="119" cy="58" r="7" fill="currentColor"/><rect x="41" y="72" width="78" height="14" rx="7" fill="currentColor"/></svg>
           </i>
-          <i aria-label="play" class="button-play" onClick={run}><Icon name="play"/></i>
+          <i aria-label="play" class="button-play" onClick={() => { void run(); }}><Icon name="play"/></i>
         </div>
       </Show>
 
@@ -224,10 +224,10 @@ export default (props: {
                 value={input()}
                 onInput={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') run();
+                  if (e.key === 'Enter') { void run(); }
                 }}
               />
-              <i aria-label="run" class="code-prefill-run" onClick={run} title="Run (Enter)">
+              <i aria-label="run" class="code-prefill-run" onClick={() => { void run(); }} title="Run (Enter)">
                 <Icon name="play"/>
               </i>
             </div>
@@ -248,11 +248,11 @@ export default (props: {
                       value={fieldValues()[i()] || ''}
                       onInput={(e) => {
                         const vals = [...fieldValues()];
-                        vals[i()] = (e.target as HTMLInputElement).value;
+                        vals[i()] = e.target.value;
                         setFieldValues(vals);
                       }}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') run();
+                        if (e.key === 'Enter') { void run(); }
                       }}
                     />
                   </div>
@@ -263,7 +263,7 @@ export default (props: {
               <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
                 <Icon name="clear"/>
               </span>
-              <i aria-label="run" class="code-prefill-run" onClick={run} title="Run (Enter)">
+              <i aria-label="run" class="code-prefill-run" onClick={() => { void run(); }} title="Run (Enter)">
                 <Icon name="play"/>
               </i>
             </div>
@@ -277,15 +277,15 @@ export default (props: {
             <textarea
               class="code-emitter-input"
               rows={Math.max(5, allPrompts().length + 2)}
-              placeholder={"Each line = one input() call.\nExample — a 3-line pre-fill for a program that reads name, age, city:\nAlice\n25\nNew York"}
+              placeholder={'Each line = one input() call.\nExample — a 3-line pre-fill for a program that reads name, age, city:\nAlice\n25\nNew York'}
               value={rawStdin()}
-              onInput={(e) => setRawStdin((e.target as HTMLTextAreaElement).value)}
+              onInput={(e) => setRawStdin(e.target.value)}
             />
             <div class="stdin-form-footer">
               <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
                 <Icon name="clear"/>
               </span>
-              <i aria-label="run" class="code-prefill-run" onClick={run} title="Run (Enter)">
+              <i aria-label="run" class="code-prefill-run" onClick={() => { void run(); }} title="Run (Enter)">
                 <Icon name="play"/>
               </i>
             </div>
@@ -324,7 +324,7 @@ export default (props: {
                 class="code-interactive-stdin-input"
                 placeholder={interactivePrompt() || ''}
                 value={interactiveInput()}
-                onInput={(e) => setInteractiveInput((e.target as HTMLInputElement).value)}
+                onInput={(e) => setInteractiveInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') submitInteractiveStdin();
                   if (e.key === 'Escape') cancelInteractiveStdin();

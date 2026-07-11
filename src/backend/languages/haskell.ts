@@ -17,7 +17,8 @@ const getGhcVersion = async () => {
     url: 'https://play.haskell.org/versions',
     headers,
   });
-  ghcVersion = (res.json as string[]).last();
+  const versions = res.json as string[];
+  ghcVersion = versions[versions.length - 1];
 
   return ghcVersion;
 }
@@ -30,7 +31,7 @@ const run = async (code: string) => {
       code,
       opt: 'O1',
       output: 'run',
-      version: ghcVersion ?? getGhcVersion(),
+      version: ghcVersion ?? await getGhcVersion(),
     }),
     method: 'POST',
   });
