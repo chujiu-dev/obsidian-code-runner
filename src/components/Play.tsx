@@ -165,6 +165,7 @@ export default (props: {
   const writeToCache = () => {
     // eslint-disable-next-line no-restricted-syntax -- localStorage is the only cross-session persistence API for output caching in Obsidian
     const a = localStorage.getItem(cacheKey());
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any; CacheEntry is a local interface compatible with the JSON shape
     const b: CacheEntry = a ? JSON.parse(a) : {};
     b[codeSum()] = {
       outputs: outputs(),
@@ -174,6 +175,7 @@ export default (props: {
     localStorage.setItem(cacheKey(), JSON.stringify(b));
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- SolidJS onMount accepts async callbacks; the Promise is fire-and-forget
   onMount(async () => {
     const r = await readFromCache();
     if (r) stdio.set(r);
@@ -189,6 +191,7 @@ export default (props: {
 
   const stop = () => {
     const engine = backend[props.lang];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- Backend.terminate is optional; guard above handles undefined case
     if (engine.terminate) {
       engine.terminate();
     }
@@ -238,6 +241,7 @@ export default (props: {
           {/* Sequential (bounded): labeled multi-field form */}
           <Show when={!hasSAB && !isInteractive()}>
             <div class="stdin-fields">
+              {/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment -- SolidJS For callback types are not resolved by strict linting */}
               <For each={allPrompts()}>
                 {(prompt, i) => (
                   <div class="stdin-field">
@@ -258,6 +262,7 @@ export default (props: {
                   </div>
                 )}
               </For>
+              {/* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */}
             </div>
             <div class="stdin-form-footer">
               <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
@@ -301,6 +306,7 @@ export default (props: {
           {/* Input history */}
           <Show when={stdinHistory().length > 0}>
             <div class="code-interactive-stdin-area">
+              {/* eslint-disable @typescript-eslint/no-unsafe-member-access -- SolidJS For callback item types are not resolved by strict linting */}
               <For each={stdinHistory()}>
                 {(item) => (
                   <div class="code-interactive-stdin-history">
@@ -310,6 +316,7 @@ export default (props: {
                   </div>
                 )}
               </For>
+              {/* eslint-enable @typescript-eslint/no-unsafe-member-access */}
             </div>
           </Show>
 

@@ -30,6 +30,7 @@ export default async function (code: string, output: Stdio): Promise<void> {
     try {
       // AsyncFunction constructor runs user code with access to the real global scope.
       // 'console' is passed as a parameter so user code's console.* calls are captured.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Object.getPrototypeOf returns object; .constructor is not recognized by strict linting
       const AsyncFunction = Object.getPrototypeOf(async function () { /* noop */ }).constructor as
         new (...args: string[]) => (...args: unknown[]) => Promise<unknown>;
       const fn = new AsyncFunction('console', code);

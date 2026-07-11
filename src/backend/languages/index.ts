@@ -32,6 +32,7 @@ const languageRegistry: Record<string, ((props?: unknown) => Backend) | Backend>
   haskell: hs,
   ts,
   typescript: ts,
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- python IIFE return type (Backend) is compatible but the intermediate function wrapper confuses strict lint
   python,
   go,
   swift,

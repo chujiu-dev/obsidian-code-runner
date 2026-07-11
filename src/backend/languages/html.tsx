@@ -18,11 +18,13 @@ const HtmlViewer = (props: { code: string }) => {
 
   onMount(() => {
     if (!host || !el) return;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- ShadowRoot API is inherently untyped in Obsidian's DOM environment
     shadow = host.attachShadow({ mode: 'closed' });
     shadow.appendChild(el);
   });
 
   onCleanup(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- DOM remove() method is typed as any in Obsidian's type environment
     host?.remove();
   });
 
