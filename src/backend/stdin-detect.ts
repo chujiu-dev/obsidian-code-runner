@@ -135,3 +135,64 @@ export const STDIN_SUPPORTED_LANGS = new Set([
 export function supportsStdin(lang: string): boolean {
   return STDIN_SUPPORTED_LANGS.has(lang);
 }
+
+// ── Prompt extraction ──
+
+/** One parsed input() call from source code. */
+export interface InputPrompt {
+  /** Literal prompt text from source, e.g. "请输入姓名：". Empty string if none. */
+  prompt: string;
+  /** Display label for the UI field. Same as prompt, or "Input #N" / "Input #N (动态)". */
+  label: string;
+  /** True when the prompt can't be statically determined (f-string, variable, etc.). */
+  dynamic: boolean;
+}
+
+/**
+ * Extract input() prompts from source code for UI visualization.
+ *
+ * Currently only Python is supported. Returns an empty array for all
+ * other languages (they fall back to the raw textarea).
+ *
+ * @param lang - Language identifier.
+ * @param code - Source code to analyze.
+ * @returns Array of parsed input prompts in source order.
+ */
+export function extractInputPrompts(lang: string, code: string): InputPrompt[] {
+  if (lang !== 'python') return [];
+
+  const results: InputPrompt[] = [];
+  let counter = 0;
+
+  // Strip # comments to reduce false matches inside comments
+  const cleanCode = code.replace(/#.*$/gm, '');
+
+  const inputRe = /\binput\s*\(/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = inputRe.exec(cleanCode)) !== null) {
+    counter++;
+    const pos = match.index + match[0].length;
+    const after = cleanCode.slice(pos);
+
+    // Case 1: input() — no arguments
+    const noArgMatch = after.match(/^\s*\)/);
+    if (noArgMatch) {
+      results.push({ prompt: '', label: `Input #${counter}`, dynamic: false });
+      continue;
+    }
+
+    // Case 2: input("...") or input('...') — literal string prompt
+    const strMatch = after.match(/^\s*(["'])((?:(?!\1)[^\\]|\\.)*)\1\s*\)/);
+    if (strMatch) {
+      const rawPrompt = strMatch[2].replace(/\\(.)/g, '$1');
+      results.push({ prompt: rawPrompt, label: rawPrompt, dynamic: false });
+      continue;
+    }
+
+    // Case 3: input(f"..."), input(var), etc. — dynamic prompt
+    results.push({ prompt: '', label: `Input #${counter} (动态)`, dynamic: true });
+  }
+
+  return results;
+}

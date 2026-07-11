@@ -5,6 +5,7 @@
 }
 
 .code-emitter-block {
+  position: relative;
   white-space: nowrap;
   min-height: 1.5rem;
 }
@@ -77,6 +78,59 @@
     }
   }
 
+  // Submit/run button (▶ icon, placed right of input)
+  .code-prefill-run {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-s);
+    cursor: var(--cursor);
+    opacity: 0.85;
+    flex-shrink: 0;
+    color: var(--text-accent);
+
+    &:hover {
+      opacity: 1;
+      background-color: var(--background-modifier-hover);
+    }
+  }
+
+  // Accent-colored action icons (↵ submit, ■ stop)
+  .code-accent {
+    color: var(--text-accent);
+  }
+
+  // Purple filled stop button (■ + Stop, white on purple)
+  .code-stop-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-2-1);
+    padding: var(--size-2-1) var(--size-2-3);
+    border: 1px solid var(--text-accent);
+    border-radius: var(--radius-s);
+    background: var(--text-accent);
+    color: var(--text-on-accent);
+    font-size: 0.8em;
+    font-family: var(--font-interface);
+    cursor: var(--cursor);
+    line-height: 1.4;
+    opacity: 0.75;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  // Divider between input history and program output
+  hr.code-input-output-divider {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    border: none;
+    border-top: 2px solid var(--background-modifier-border);
+  }
+
   .code-input-area {
     .code-emitter-input {
       width: 100%;
@@ -94,6 +148,43 @@
     }
 
     .code-emitter-input:focus {
+      border-color: var(--interactive-accent);
+    }
+
+    // Labeled stdin fields (prompt visualization)
+    .stdin-fields {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-4-1);
+    }
+
+    .stdin-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-2-1);
+    }
+
+    .stdin-field-label {
+      font-size: 0.85em;
+      font-weight: 500;
+      color: var(--text-muted);
+      user-select: none;
+    }
+
+    .stdin-field-input {
+      width: 100%;
+      padding: var(--size-4-1) var(--size-4-2);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: var(--radius-s);
+      background-color: var(--background-primary);
+      color: var(--text-normal);
+      font-family: var(--font-monospace);
+      font-size: 0.85em;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .stdin-field-input:focus {
       border-color: var(--interactive-accent);
     }
   }
@@ -116,12 +207,47 @@
     }
   }
 
-  // Interactive stdin: inline input shown when Python code calls input()
+  // Interactive stdin: wrapper for history + current input + stop button
+  .code-interactive-stdin-area {
+    white-space: normal;
+  }
+
+  // Completed stdin interactions (read-only history)
+  .code-interactive-stdin-history {
+    display: flex;
+    align-items: baseline;
+    gap: var(--size-2-2);
+    padding: var(--size-2-1) 0;
+    font-size: 0.85em;
+    font-family: var(--font-monospace);
+    white-space: normal;
+    word-break: break-all;
+  }
+
+  .stdin-history-prompt {
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .stdin-history-arrow {
+    color: var(--text-faint);
+    flex-shrink: 0;
+  }
+
+  .stdin-history-response {
+    color: var(--text-normal);
+    font-weight: 500;
+  }
+
+  // Current interactive stdin input row
   .code-interactive-stdin {
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-2);
     margin-top: var(--size-2-2);
 
     .code-interactive-stdin-input {
-      width: 100%;
+      flex: 1;
       padding: var(--size-4-1) var(--size-4-2);
       border: 1px solid var(--interactive-accent);
       border-radius: var(--radius-s);
@@ -133,9 +259,47 @@
       outline: none;
       box-sizing: border-box;
     }
+
+    .code-interactive-stdin-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: var(--radius-s);
+      cursor: var(--cursor);
+      opacity: 0.5;
+      flex-shrink: 0;
+
+      &:hover {
+        opacity: 1;
+        background-color: var(--background-modifier-hover);
+      }
+    }
   }
 
-}
+  // Inline stop button row (flow positioning, below the input)
+  .code-interactive-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: var(--size-4-1);
+
+    .button-play {
+      display: flex;
+      padding: var(--size-2-2) var(--size-2-3);
+      border-radius: var(--radius-s);
+      cursor: var(--cursor);
+      position: static;
+      bottom: auto;
+      inset-inline-end: auto;
+    }
+
+    .button-play:hover {
+      background-color: var(--background-modifier-hover);
+    }
+  }
+
   .code-emitter-actions {
     display: flex;
     position: absolute;
@@ -157,8 +321,9 @@
     background-color: var(--background-modifier-hover);
   }
 
-.code-emitter-actions .button-play {
+  .code-emitter-actions .button-play {
     bottom: auto;
     position: static;
     inset-inline-end: auto;
+  }
 }
