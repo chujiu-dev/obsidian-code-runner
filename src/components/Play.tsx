@@ -1,28 +1,27 @@
 import './Play.scss';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import backend, { createStdio } from '../backend';
+import { hasSAB } from '../backend/languages/python';
 import Spin from './Spin';
 import Term from './Term';
 import Icon from './Icon';
-import { needsStdin, extractInputPrompts } from '../backend/stdin-detect';
+import { needsStdin, extractInputPrompts, isInteractiveStdin } from '../backend/stdin-detect';
 import type { InputPrompt } from '../backend/stdin-detect';
 
-/** Simple djb2 string hash for cache keys (replaces crypto-js/md5). */
 function hashCode(str: string): string {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
   return hash.toString(16);
 }
 
 interface CacheEntry {
-  [code: string]: {
-      lastAccessTime: number,
-      outputs: string[]
-  }
+  [code: string]: { lastAccessTime: number; outputs: string[] };
 }
+
+interface StdinHistoryItem { prompt: string; response: string; }
 
 export default (props: {
   lang: string,
@@ -42,20 +41,20 @@ export default (props: {
   const [input, setInput] = createSignal('');
   const [showInput, setShowInput] = createSignal(false);
 
-  // ── Pre-fill stdin (first input only, styled like interactive popup) ──
-  /** First prompt label used as placeholder, null = no prompt parsed */
+  // ── Pre-fill stdin ──
   const [firstPrompt, setFirstPrompt] = createSignal<string | null>(null);
 
-  // ── Interactive stdin (Worker + SAB backend) ──
-  /** Accumulated history of prompt→response pairs (cleared each run). */
-  interface StdinHistoryItem { prompt: string; response: string }
+  // ── Non-SAB (tablet) fallback ──
+  const [allPrompts, setAllPrompts] = createSignal<InputPrompt[]>([]);
+  const [fieldValues, setFieldValues] = createSignal<string[]>([]);
+  const [isInteractive, setIsInteractive] = createSignal(false);
+  const [rawStdin, setRawStdin] = createSignal('');
+
+  // ── Interactive stdin (Worker + SAB) ──
   const [stdinHistory, setStdinHistory] = createSignal<StdinHistoryItem[]>([]);
-  /** Current prompt from a live input() call, null = no interactive input pending */
   const [interactivePrompt, setInteractivePrompt] = createSignal<string | null>(null);
-  /** Current value of the interactive input field */
   const [interactiveInput, setInteractiveInput] = createSignal('');
 
-  /** Record current interaction to history and unblock Worker. */
   const submitInteractiveStdin = () => {
     const val = interactiveInput();
     const prompt = interactivePrompt() || '';
@@ -65,7 +64,6 @@ export default (props: {
     setInteractiveInput('');
   };
 
-  /** Cancel: record empty response and unblock Worker. */
   const cancelInteractiveStdin = () => {
     const prompt = interactivePrompt() || '';
     setStdinHistory(prev => [...prev, { prompt, response: '' }]);
@@ -74,23 +72,25 @@ export default (props: {
     setInteractiveInput('');
   };
 
-  /** Ref to the interactive <input> so we can auto-focus it each time it appears. */
   let interactiveInputRef: HTMLInputElement | undefined;
 
-  /** Pre-fill value: one line for the first input(). */
-  const getStdinValue = (): string => input();
-
-  /** Parse only the first prompt, show single-field pre-fill (matching interactive popup style). */
-  const showInputWithFirstPrompt = () => {
+  const showInputForm = () => {
     if (needsStdin(props.lang, props.code) && props.lang === 'python') {
       const parsed = extractInputPrompts(props.lang, props.code);
-      setFirstPrompt(parsed.length > 0 ? parsed[0].label : null);
+      if (hasSAB) {
+        setFirstPrompt(parsed.length > 0 ? parsed[0].label : null);
+      } else {
+        const loop = isInteractiveStdin(props.lang, props.code);
+        setIsInteractive(loop);
+        setAllPrompts(parsed);
+        if (loop) setRawStdin('');
+        else setFieldValues(new Array(parsed.length).fill(''));
+      }
     }
     setShowInput(true);
   };
 
   const run = async () => {
-    // Auto-show the pre-fill form when stdin is needed.
     if (needsStdin(props.lang, props.code)) {
       stdio.clear();
       if (props.lang !== 'python') {
@@ -100,26 +100,38 @@ export default (props: {
         );
         return;
       }
-
-      // First click: show the single-field pre-fill form but DON'T execute yet.
       if (!showInput()) {
-        showInputWithFirstPrompt();
+        showInputForm();
         return;
       }
     }
 
     setRunning(true);
     setShowInput(false);
-    // Seed history with first pre-fill entry for visual continuity with later popups
-    const seedVal = input();
-    const seedPrompt = firstPrompt();
-    if (seedVal) {
-      setStdinHistory([{ prompt: seedPrompt || '', response: seedVal }]);
-    } else {
-      setStdinHistory([]);
+
+    if (needsStdin(props.lang, props.code) && props.lang === 'python') {
+      if (hasSAB) {
+        const seedVal = input();
+        const seedPrompt = firstPrompt();
+        setStdinHistory(seedVal ? [{ prompt: seedPrompt || '', response: seedVal }] : []);
+        stdio.setStdin(input());
+      } else if (isInteractive()) {
+        const lines = rawStdin().split('\n');
+        const prompts = allPrompts();
+        setStdinHistory(lines.map((line, i) => ({
+          prompt: prompts[i]?.label || `Input #${i + 1}`,
+          response: line,
+        })));
+        stdio.setStdin(rawStdin());
+      } else {
+        const values = fieldValues();
+        const prompts = allPrompts();
+        setStdinHistory(prompts.map((p, i) => ({ prompt: p.label, response: values[i] || '' })));
+        stdio.setStdin(values.join('\n'));
+      }
     }
+
     try {
-      stdio.setStdin(getStdinValue());
       const engine = backend[props.lang];
       await engine(props.code, stdio);
     } finally {
@@ -131,6 +143,10 @@ export default (props: {
     setShowInput(false);
     setInput('');
     setFirstPrompt(null);
+    setAllPrompts([]);
+    setFieldValues([]);
+    setIsInteractive(false);
+    setRawStdin('');
   };
 
   const readFromCache = async () => {
@@ -160,17 +176,11 @@ export default (props: {
 
   onMount(async () => {
     const r = await readFromCache();
-    if (r) {
-      stdio.set(r);
-    }
-    // Subscribe to interactive stdin requests from the Worker backend.
-    // When the Worker calls waitForInteractiveStdin(prompt), this sets
-    // the prompt signal, which shows the inline input field.
-    // Each input() call triggers a NEW request, so the box re-appears.
+    if (r) stdio.set(r);
+
     stdio.onStdinRequest((prompt: string) => {
       setInteractivePrompt(prompt);
       setInteractiveInput('');
-      // Auto-focus after DOM renders the input element
       setTimeout(() => interactiveInputRef?.focus(), 0);
     });
   });
@@ -191,7 +201,7 @@ export default (props: {
     <div class="code-emitter-block solid">
       <Show when={ !running() && !hasResult() && !showInput()}>
         <div class="code-emitter-actions">
-          <i aria-label="toggle-input" class="button-input-toggle" onClick={() => { showInput() ? closeInput() : showInputWithFirstPrompt(); }} title="Toggle input area">
+          <i aria-label="toggle-input" class="button-input-toggle" onClick={() => { showInput() ? closeInput() : showInputForm(); }} title="Toggle input area">
             <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" width="0.7em" height="0.6em" viewBox="0 0 160 112"><rect x="12" y="10" width="136" height="92" rx="4" fill="none" stroke="currentColor" stroke-width="20"/><circle cx="41" cy="36" r="7" fill="currentColor"/><circle cx="67" cy="36" r="7" fill="currentColor"/><circle cx="93" cy="36" r="7" fill="currentColor"/><circle cx="119" cy="36" r="7" fill="currentColor"/><circle cx="41" cy="58" r="7" fill="currentColor"/><circle cx="67" cy="58" r="7" fill="currentColor"/><circle cx="93" cy="58" r="7" fill="currentColor"/><circle cx="119" cy="58" r="7" fill="currentColor"/><rect x="41" y="72" width="78" height="14" rx="7" fill="currentColor"/></svg>
           </i>
           <i aria-label="play" class="button-play" onClick={run}><Icon name="play"/></i>
@@ -201,23 +211,86 @@ export default (props: {
       <Show when={showInput()}>
         <hr class="code-seprator code-seprator-input"/>
         <div class="code-input-area">
-          <div class="code-interactive-stdin">
-            <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
-              <Icon name="clear"/>
-            </span>
-            <input
-              class="code-interactive-stdin-input"
-              placeholder={firstPrompt() || 'Enter input for first prompt…'}
-              value={input()}
-              onInput={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') run();
-              }}
+
+          {/* Desktop: SAB single-field pre-fill */}
+          <Show when={hasSAB}>
+            <div class="code-interactive-stdin">
+              <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
+                <Icon name="clear"/>
+              </span>
+              <input
+                class="code-interactive-stdin-input"
+                placeholder={firstPrompt() || 'Enter input for first prompt…'}
+                value={input()}
+                onInput={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') run();
+                }}
+              />
+              <i aria-label="run" class="code-prefill-run" onClick={run} title="Run (Enter)">
+                <Icon name="play"/>
+              </i>
+            </div>
+          </Show>
+
+          {/* Tablet: sequential → labeled fields, interactive → textarea */}
+
+          {/* Sequential (bounded): labeled multi-field form */}
+          <Show when={!hasSAB && !isInteractive()}>
+            <div class="stdin-fields">
+              <For each={allPrompts()}>
+                {(prompt, i) => (
+                  <div class="stdin-field">
+                    <span class="stdin-field-label">{prompt.label}</span>
+                    <input
+                      class="stdin-field-input"
+                      placeholder={prompt.label}
+                      value={fieldValues()[i()] || ''}
+                      onInput={(e) => {
+                        const vals = [...fieldValues()];
+                        vals[i()] = (e.target as HTMLInputElement).value;
+                        setFieldValues(vals);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') run();
+                      }}
+                    />
+                  </div>
+                )}
+              </For>
+            </div>
+            <div class="stdin-form-footer">
+              <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
+                <Icon name="clear"/>
+              </span>
+              <i aria-label="run" class="code-prefill-run" onClick={run} title="Run (Enter)">
+                <Icon name="play"/>
+              </i>
+            </div>
+          </Show>
+
+          {/* Interactive (loop): raw textarea */}
+          <Show when={!hasSAB && isInteractive()}>
+            <div class="stdin-textarea-hint">
+              This program uses interactive input. Each line feeds one input() call in order.
+            </div>
+            <textarea
+              class="code-emitter-input"
+              rows={Math.max(5, allPrompts().length + 2)}
+              placeholder={"Each line = one input() call.\nExample — a 3-line pre-fill for a program that reads name, age, city:\nAlice\n25\nNew York"}
+              value={rawStdin()}
+              onInput={(e) => setRawStdin((e.target as HTMLTextAreaElement).value)}
             />
-            <i aria-label="run" class="code-prefill-run" onClick={run} title="Run (Enter)">
-              <Icon name="play"/>
-            </i>
-          </div>
+            <div class="stdin-form-footer">
+              <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
+                <Icon name="clear"/>
+              </span>
+              <i aria-label="run" class="code-prefill-run" onClick={run} title="Run (Enter)">
+                <Icon name="play"/>
+              </i>
+            </div>
+          </Show>
+
         </div>
       </Show>
 
@@ -225,7 +298,7 @@ export default (props: {
         <hr class="code-seprator"/>
         <div class="code-output">
 
-          {/* Input history — always visible during & after run */}
+          {/* Input history */}
           <Show when={stdinHistory().length > 0}>
             <div class="code-interactive-stdin-area">
               <For each={stdinHistory()}>
@@ -240,7 +313,7 @@ export default (props: {
             </div>
           </Show>
 
-          {/* Running: interactive input field */}
+          {/* Interactive input popup */}
           <Show when={running() && interactivePrompt() !== null}>
             <div class="code-interactive-stdin">
               <span class="code-interactive-stdin-close" onClick={cancelInteractiveStdin} title="Cancel (send empty input)">
@@ -270,12 +343,12 @@ export default (props: {
             </div>
           </Show>
 
-          {/* Running, waiting for next input() */}
+          {/* Waiting for next input() */}
           <Show when={running() && interactivePrompt() === null}>
             <div class="loadding"><Spin/></div>
           </Show>
 
-          {/* Completed: output + clear button */}
+          {/* Output + clear */}
           <Show when={!running() && hasResult()}>
             <Show when={stdinHistory().length > 0}>
               <hr class="code-input-output-divider"/>

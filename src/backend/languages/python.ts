@@ -4,13 +4,11 @@ import { extractInputPrompts } from '../stdin-detect';
 const default_cdn = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/';
 
 // ── SAB detection (module init, runs once) ──
-let hasSAB = false;
-try {
-  new SharedArrayBuffer(1);
-  hasSAB = true;
-} catch {
-  hasSAB = false;
-}
+const hasSAB = (() => {
+  try { new SharedArrayBuffer(1); return true; }
+  catch { return false; }
+})();
+export { hasSAB };
 
 // ── Worker source (embedded as string → Blob URL) ──
 // Classic worker. importScripts for Pyodide IIFE, SAB for stdin blocking.

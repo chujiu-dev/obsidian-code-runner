@@ -1,22 +1,5 @@
 /**
- * stdin-detect.ts — Auto-detection of stdin requirements in source code.
- *
- * ## Future Feature: Auto-detect input need
- *
- * When enabled, this module analyzes code to determine whether the program
- * requires stdin input. If detected, the keyboard (input) button will
- * automatically appear without the user having to click it manually.
- *
- * ## How to integrate (future versions):
- *
- * 1. Call `needsStdin(lang, code)` before rendering the Play component.
- * 2. If it returns true, set `showInput` to true by default.
- * 3. Optionally highlight the line(s) where input is read.
- *
- * ## Adding new language patterns:
- *
- * Add a regex entry in `STDIN_PATTERNS` for the target language.
- * Patterns are matched case-insensitively.
+ * stdin-detect.ts — Parse & analyze stdin-reading patterns in source code.
  */
 
 /** Per-language regex patterns that indicate stdin usage. */
@@ -195,4 +178,71 @@ export function extractInputPrompts(lang: string, code: string): InputPrompt[] {
   }
 
   return results;
+}
+
+// ── Interactive stdin detection (unbounded input, e.g. while loops) ──
+
+/**
+ * Detect whether the program uses input() inside a loop (while/for),
+ * meaning the number of stdin lines is unbounded and cannot be
+ * statically determined. Used to decide whether the tablet fallback
+ * should show a raw multi-line textarea instead of labeled fields.
+ *
+ * Heuristic (Python only):
+ *  - input() appears on a line whose indent is deeper than a preceding
+ *    `while` or `for` line, AND no dedent back to that loop's level
+ *    before the input() call.
+ *
+ * @example
+ * ```ts
+ * isInteractiveStdin('python', `
+ * while True:
+ *     x = input("> ")  // → true
+ * `)  // => true
+ *
+ * isInteractiveStdin('python', `
+ * name = input("Name: ")
+ * age  = input("Age: ")  // → false (sequential, bounded)
+ * `)  // => false
+ * ```
+ */
+export function isInteractiveStdin(lang: string, code: string): boolean {
+  if (lang !== 'python') return false;
+
+  // Strip comments to avoid false positives
+  const clean = code.replace(/#.*$/gm, '');
+
+  const lines = clean.split('\n');
+  const whileForRe = /\b(while|for)\b.*:/;
+  const inputRe = /\binput\s*\(/;
+
+  // Track active loop indentation levels (stack)
+  const loopIndents: number[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === '') continue;
+
+    const indent = line.search(/\S/); // first non-whitespace column
+
+    // Pop loops that have been dedented past
+    while (loopIndents.length > 0 && indent <= loopIndents[loopIndents.length - 1]) {
+      loopIndents.pop();
+    }
+
+    // Does this line start a new while/for loop?
+    if (whileForRe.test(trimmed)) {
+      // Check if input() is on this same line (unlikely but possible)
+      // Push AFTER checking so we don't match the loop header itself
+      loopIndents.push(indent);
+      continue;
+    }
+
+    // Is this an input() call inside an active loop?
+    if (loopIndents.length > 0 && inputRe.test(trimmed)) {
+      return true;
+    }
+  }
+
+  return false;
 }

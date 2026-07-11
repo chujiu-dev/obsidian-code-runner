@@ -8,9 +8,6 @@
   position: relative;
   white-space: nowrap;
   min-height: 1.5rem;
-}
-
-.code-emitter-block {
 
   .button-play {
     bottom: var(--size-2-2);
@@ -54,13 +51,6 @@
     margin-bottom: var(--size-2-1);
   }
 
-  .code-area-label {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: var(--text-muted);
-    user-select: none;
-  }
-
   .button-area-close {
     display: flex;
     align-items: center;
@@ -97,12 +87,7 @@
     }
   }
 
-  // Accent-colored action icons (↵ submit, ■ stop)
-  .code-accent {
-    color: var(--text-accent);
-  }
-
-  // Purple filled stop button (■ + Stop, white on purple)
+  // Purple filled stop button (■ Stop, white on purple)
   .code-stop-button {
     display: inline-flex;
     align-items: center;
@@ -186,6 +171,20 @@
 
     .stdin-field-input:focus {
       border-color: var(--interactive-accent);
+    }
+
+    .stdin-textarea-hint {
+      font-size: 0.8em;
+      color: var(--text-muted);
+      margin-bottom: var(--size-4-1);
+      white-space: normal;
+    }
+
+    .stdin-form-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: var(--size-4-2);
     }
   }
 
