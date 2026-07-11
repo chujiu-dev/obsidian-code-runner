@@ -191,8 +191,8 @@ export default (props: {
 
   const stop = () => {
     const engine = backend[props.lang];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- Backend.terminate is optional; guard above handles undefined case
     if (engine.terminate) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- Backend.terminate is optional; guard above handles undefined case
       engine.terminate();
     }
     setRunning(false);
@@ -262,7 +262,7 @@ export default (props: {
                   </div>
                 )}
               </For>
-              {/* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */}
+              {/* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment -- re-enable rules after SolidJS For callback block */}
             </div>
             <div class="stdin-form-footer">
               <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
@@ -316,7 +316,7 @@ export default (props: {
                   </div>
                 )}
               </For>
-              {/* eslint-enable @typescript-eslint/no-unsafe-member-access */}
+              {/* eslint-enable @typescript-eslint/no-unsafe-member-access -- re-enable rule after SolidJS For callback block */}
             </div>
           </Show>
 

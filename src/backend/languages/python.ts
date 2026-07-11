@@ -167,8 +167,7 @@ async function getEngine(cdn: string): Promise<PyodideEngine> {
     g.process = { browser: true };
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument -- dynamic CDN import is required for configurable Pyodide WebAssembly loading; the path varies by version
-      const mod = await import(/* @vite-ignore */ cdn + 'pyodide.mjs') as { loadPyodide: (opts: { indexURL: string }) => Promise<PyodideEngine> };
+      const mod = await import(/* @vite-ignore */ 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.mjs') as { loadPyodide: (opts: { indexURL: string }) => Promise<PyodideEngine> };
       engine = await mod.loadPyodide({ indexURL: cdn });
     } finally {
       g.process = savedProcess;
@@ -423,6 +422,7 @@ let cache: { cdn: string; backend: Backend } | null = null;
 export default (function (props?: { cdn: string }) {
   const cdn = props?.cdn ?? default_cdn;
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- TypeScript narrows cache to non-null after guard; the return type is Backend
   if (cache !== null && cache.cdn === cdn) return cache.backend;
 
   let backend: Backend;

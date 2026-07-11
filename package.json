@@ -1,7 +1,7 @@
 {
   "name": "obsidian-code-runner",
   "description": "Interactively run code blocks in Obsidian with stdin input support. Supports Python, C, C++, Java, Go, JavaScript and more.",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "type": "module",
   "scripts": {
     "dev": "vite build -w -m development",
