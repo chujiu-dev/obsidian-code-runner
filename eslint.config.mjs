@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['typings/*', 'src/lib/sandbox/*', 'dist/*', 'main.js', 'styles.css']
+    ignores: ['typings/*', 'dist/*', 'main.js', 'styles.css']
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

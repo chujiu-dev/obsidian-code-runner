@@ -3,7 +3,7 @@ import type { Stdio } from '..';
 import { render } from 'solid-js/web';
 
 export default async function (code: string, stdio: Stdio): Promise<void> {
-   
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- SolidJS render() type is compatible; linter doesn't track JSX generics
   render(() => <HtmlViewer code={code}/>, stdio.viewEl);
 }
 

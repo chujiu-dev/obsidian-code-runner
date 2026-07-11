@@ -1,9 +1,9 @@
 import { requestUrl } from 'obsidian';
-import type { CodeOutput as StdIO } from '..';
+import type { Stdio } from '..';
 
 const url = 'https://play.vosca.dev/run';
 
-export default async function (code: string, output: StdIO): Promise<void> {
+export default async function (code: string, output: Stdio): Promise<void> {
   const res = await requestUrl({
     url,
     method: 'POST',

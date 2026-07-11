@@ -112,9 +112,11 @@ export default class CodeEmitterPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settingsUpdate(Object.assign({}, SETTING_DEFAULT, await this.loadData()));
+    const data = await this.loadData() as Partial<PluginSetting>;
+    this.settingsUpdate(Object.assign({}, SETTING_DEFAULT, data));
   }
   async saveSettings(): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Obsidian's saveData accepts the SolidJS unwrapped store object
     await this.saveData(unwrap(this.settings));
   }
 }

@@ -10,18 +10,18 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-let ghcVersion = undefined;
+let ghcVersion: string | undefined;
 
-const getGhcVersion = async () => {
+const getGhcVersion = async (): Promise<string> => {
   const res = await requestUrl({
     url: 'https://play.haskell.org/versions',
     headers,
   });
   const versions = res.json as string[];
-  ghcVersion = versions[versions.length - 1];
+  ghcVersion = versions[versions.length - 1] ?? '';
 
   return ghcVersion;
-}
+};
 
 const run = async (code: string) => {
   const res = await requestUrl({
@@ -36,12 +36,12 @@ const run = async (code: string) => {
     method: 'POST',
   });
 
-  return (res.json) as {
-    ec: number
-    ghcout: string,
-    sout: string
-    serr: string,
-    timesec: number
+  return res.json as {
+    ec: number;
+    ghcout: string;
+    sout: string;
+    serr: string;
+    timesec: number;
   };
 };
 

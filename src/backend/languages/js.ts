@@ -1,48 +1,45 @@
 import type { Stdio } from '..';
-import { ProxySandbox } from '../../lib/sandbox';
 
-
-
-export default async function (code: string, output: Stdio): Promise<void> {
-
-  return new Promise((resolve, reject) => {
-    const sandbox = new ProxySandbox('t');
-    let run = (async function (window: typeof sandbox.proxy) {
-      const { console } = window;
-      Object.assign(console, wrapConsole(output));
-      sandbox.active();
-      try {
-         
-        await eval(code);
-      } catch (e) {
-        console.error(e);
-      }
-      finally {
-        sandbox.inactive();
-      }
-    });
-    run = run.bind(sandbox.proxy);
-    (run(sandbox.proxy)).then(resolve).catch(reject);
-  });
+interface WrappedConsole {
+  log: (...data: string[]) => void;
+  info: (...data: string[]) => void;
+  debug: (...data: string[]) => void;
+  warn: (...data: string[]) => void;
+  error: (...data: unknown[]) => void;
 }
 
-const wrapConsole = ({ update }: Stdio) => {
+const wrapConsole = ({ update }: Stdio): WrappedConsole => {
   const prettyWrite = (name: string, data: string[]): void => {
-    const output = `<div class="log-${name}">${data.join(',')}</div>`;
-    update(n => [...n, output]);
+    const outputStr = `<div class="log-${name}">${data.join(',')}</div>`;
+    update(n => [...n, outputStr]);
   };
 
   const log = (...data: string[]) => prettyWrite('info', data);
   const info = (...data: string[]) => prettyWrite('info', data);
   const debug = (...data: string[]) => prettyWrite('debug', data);
   const warn = (...data: string[]) => prettyWrite('warn', data);
-  const error = (...data: string[]) => prettyWrite('error', data);
+  const error = (...data: unknown[]) => prettyWrite('error', data.map(String));
 
-  return {
-    log,
-    info,
-    debug,
-    warn,
-    error,
-  }
+  return { log, info, debug, warn, error };
+};
+
+export default async function (code: string, output: Stdio): Promise<void> {
+  return new Promise((resolve) => {
+    const wrapped = wrapConsole(output);
+
+    try {
+      // AsyncFunction constructor runs user code with access to the real global scope.
+      // 'console' is passed as a parameter so user code's console.* calls are captured.
+      const AsyncFunction = Object.getPrototypeOf(async function () { /* noop */ }).constructor as
+        new (...args: string[]) => (...args: unknown[]) => Promise<unknown>;
+      const fn = new AsyncFunction('console', code);
+      fn(wrapped).then(() => resolve()).catch((e: unknown) => {
+        wrapped.error(e);
+        resolve();
+      });
+    } catch (e: unknown) {
+      wrapped.error(e);
+      resolve();
+    }
+  });
 }

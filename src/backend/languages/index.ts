@@ -18,14 +18,12 @@ import html from './html';
 import type { Backend } from '..';
 
 
-export default {
+const languageRegistry: Record<string, ((props?: unknown) => Backend) | Backend> = {
   kotlin,
   rust,
   java,
   c,
   cpp,
-  // 'c++': cpp,
-  // 'c#': csharp,
   csharp,
   js,
   javascript: js,
@@ -42,9 +40,9 @@ export default {
   wy,
   wenyan: wy,
   crystal,
-  cr : crystal,
+  cr: crystal,
   r,
   R: r,
-} as {
-  [lang: PropertyKey]: ((props?: unknown) => Backend) | Backend
 };
+
+export default languageRegistry;

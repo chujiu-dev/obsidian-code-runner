@@ -15,6 +15,15 @@ interface PyodideEngine {
   };
 }
 
+// ── Worker message types ──
+interface WorkerMessage {
+  type: 'stdout' | 'stderr' | 'stdin' | 'complete' | 'error' | 'ready';
+  text?: string;
+  error?: string;
+  interactive?: boolean;
+  prompt?: string;
+}
+
 // ── SAB detection (module init, runs once) ──
 const hasSAB = (() => {
   try { new SharedArrayBuffer(1); return true; }
@@ -158,7 +167,7 @@ async function getEngine(cdn: string): Promise<PyodideEngine> {
     g.process = { browser: true };
 
     try {
-       
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return -- dynamic CDN import is required for configurable Pyodide WebAssembly loading; the path varies by version
       const mod = await import(/* @vite-ignore */ cdn + 'pyodide.mjs') as { loadPyodide: (opts: { indexURL: string }) => Promise<PyodideEngine> };
       engine = await mod.loadPyodide({ indexURL: cdn });
     } finally {
@@ -301,22 +310,24 @@ function createWorkerBackend(cdn: string): Backend {
     dataView = new Uint8Array(sab, 8);
 
     worker.onmessage = (event: MessageEvent) => {
-      const data = event.data;
+      const data = event.data as WorkerMessage;
       switch (data.type) {
       case 'stdout':
-        currentOutput?.stdout(data.text);
+        if (currentOutput && data.text) currentOutput.stdout(data.text);
         break;
       case 'stderr':
-        currentOutput?.stderr(data.text);
+        if (currentOutput && data.text) currentOutput.stderr(data.text);
         break;
       case 'stdin':
         // __my_input in Python already consumed pre-fill lines internally.
         // Any stdin message from the Worker is a real interactive request
         // (waitForInteractiveStdin always sends interactive:true).
-        if (data.interactive) {
+        if (data.interactive && currentOutput) {
           const prompt = data.prompt || '';
-          currentOutput?.requestStdin(prompt).then((input: string) => {
+          currentOutput.requestStdin(prompt).then((input: string) => {
             writeStdinToSAB(input);
+          }).catch(() => {
+            writeStdinToSAB('');
           });
         } else if (stdinIndex < stdinLines.length) {
           // Legacy path: should not normally be reached with current Worker code.
@@ -325,7 +336,7 @@ function createWorkerBackend(cdn: string): Backend {
         } else {
           stdinEmptyCount++;
           if (stdinEmptyCount >= 10) {
-            currentOutput?.stderr(
+            if (currentOutput) currentOutput.stderr(
               '⚠️ 预输入数据不完整！已消耗所有 ' + stdinLines.length + ' 行预填数据。\n' +
                 '程序继续请求输入（已连续10次空输入）。\n' +
                 '请在输入框中补充更多行数据后重新运行。\n\n' +
@@ -342,7 +353,7 @@ function createWorkerBackend(cdn: string): Backend {
         runResolve?.();
         break;
       case 'error':
-        currentOutput?.stderr(data.error);
+        if (currentOutput && data.error) currentOutput.stderr(data.error);
         runResolve?.();
         break;
       default:
@@ -352,7 +363,7 @@ function createWorkerBackend(cdn: string): Backend {
 
     worker.onerror = (e: ErrorEvent) => {
       console.error('[Code Runner] Worker error:', e.message);
-      currentOutput?.stderr('Worker error: ' + (e.message || 'Unknown error'));
+      if (currentOutput) currentOutput.stderr('Worker error: ' + (e.message || 'Unknown error'));
       runResolve?.();
     };
 

@@ -150,7 +150,7 @@ export default (props: {
   };
 
   const readFromCache = async () => {
-     
+    // eslint-disable-next-line no-restricted-syntax -- localStorage is the only cross-session persistence API for output caching in Obsidian
     const a = localStorage.getItem(cacheKey());
     if (!a) {
       return undefined;
@@ -163,14 +163,14 @@ export default (props: {
     return c.outputs;
   };
   const writeToCache = () => {
-     
+    // eslint-disable-next-line no-restricted-syntax -- localStorage is the only cross-session persistence API for output caching in Obsidian
     const a = localStorage.getItem(cacheKey());
     const b: CacheEntry = a ? JSON.parse(a) : {};
     b[codeSum()] = {
       outputs: outputs(),
       lastAccessTime: Date.now()
     };
-     
+    // eslint-disable-next-line no-restricted-syntax -- localStorage is the only cross-session persistence API for output caching in Obsidian
     localStorage.setItem(cacheKey(), JSON.stringify(b));
   };
 
