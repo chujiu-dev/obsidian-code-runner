@@ -7,8 +7,8 @@ const default_cdn = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/';
 interface PyodideEngine {
   runPythonAsync(code: string): Promise<void>;
   loadPackage(name: string): Promise<void>;
-  setStdout(options: { batched: (s: string) => void }): void;
-  setStderr(options: { batched: (s: string) => void }): void;
+  setStdout(options: { raw?: (ch: number) => void; batched?: (s: string) => void }): void;
+  setStderr(options: { raw?: (ch: number) => void; batched?: (s: string) => void }): void;
   globals: {
     get(name: string): unknown;
     set(name: string, value: unknown): void;
@@ -123,6 +123,8 @@ function workerSource(): string {
     '  ].join("\\n");',
     '  pyodide.runPythonAsync(setupCode).then(function() {',
     '    return pyodide.runPythonAsync(code);',
+    '  }).then(function() {',
+    '    return pyodide.runPythonAsync("print()");',
     '  }).then(function() {',
     '    self.postMessage({ type: "complete" });',
     '  }).catch(function(e) {',
@@ -268,6 +270,8 @@ function createMainThreadBackend(cdn: string): Backend {
       } catch (e: unknown) {
         output.stderr(e instanceof Error ? e.message : String(e));
       }
+      // Force-flush stdout buffer for output without trailing newline
+      try { await eng.runPythonAsync('print()'); } catch {}
     } catch (e: unknown) {
       output.stderr(e instanceof Error ? e.message : String(e));
     } finally {
