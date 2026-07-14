@@ -7,6 +7,7 @@ import backend, { type Stdio } from './backend';
 import SettingTab from './components/SettingTab';
 import CodeBlock from './components/CodeBlock';
 import { needsStdin, supportsStdin } from './backend/stdin-detect';
+import { initI18n, t } from './i18n';
 
 import SETTING_DEFAULT, { type PluginSetting } from './setting';
 
@@ -48,7 +49,8 @@ export default class CodeEmitterPlugin extends Plugin {
     execute: async (lang: string, code: string, stdin?: string): Promise<string[]> => {
       const engine = backend[lang];
       if (!engine) {
-        throw new Error(`Unsupported language: ${lang}. Supported: ${Object.keys(backend).filter(l => !l.includes('+') && !l.includes('#')).join(', ')}`);
+        const list = Object.keys(backend).filter(l => !l.includes('+') && !l.includes('#')).join(', ');
+        throw new Error(t('api.unsupportedLang', { lang, list }));
       }
 
       const outputs: string[] = [];
@@ -89,6 +91,7 @@ export default class CodeEmitterPlugin extends Plugin {
       {
         settings: this.settings,
         settingsUpdate: this.settingsUpdate,
+        save: () => this.saveSettings(),
       }
     ));
 
@@ -112,8 +115,16 @@ export default class CodeEmitterPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const data = await this.loadData() as Partial<PluginSetting>;
-    this.settingsUpdate(Object.assign({}, SETTING_DEFAULT, data));
+    const data = await this.loadData() as Partial<PluginSetting> | null;
+    const merged = { ...SETTING_DEFAULT, ...(data ?? {}) };
+
+    // First load: if no saved language, detect from Obsidian
+    if (!data?.language) {
+      // merged.language is already 'auto' from SETTING_DEFAULT — it will auto-detect
+    }
+
+    this.settingsUpdate(merged);
+    initI18n(merged.language);
   }
   async saveSettings(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Obsidian's saveData accepts the SolidJS unwrapped store object

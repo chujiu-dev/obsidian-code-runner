@@ -277,6 +277,35 @@
     }
   }
 
+  // ── Compiler warnings (collapsed by default, grey) ──
+  .code-runner-warnings {
+    margin-top: 1em;
+    color: var(--text-muted);
+
+    summary {
+      cursor: var(--cursor);
+      user-select: none;
+      padding: var(--size-2-1) 0;
+      opacity: 0.65;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    pre {
+      margin: var(--size-2-1) 0 0 0;
+      padding: var(--size-4-1) var(--size-4-2);
+      border-radius: var(--radius-s);
+      background: var(--background-secondary);
+      color: var(--text-muted);
+      font-family: var(--font-monospace);
+      font-size: 0.9em;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  }
+
   // Inline stop button row (flow positioning, below the input)
   .code-interactive-actions {
     display: flex;

@@ -7,6 +7,7 @@ import Term from './Term';
 import Icon from './Icon';
 import { needsStdin, extractInputPrompts, isInteractiveStdin } from '../backend/stdin-detect';
 import type { InputPrompt } from '../backend/stdin-detect';
+import { t } from '../i18n';
 
 function hashCode(str: string): string {
   let hash = 5381;
@@ -94,10 +95,7 @@ export default (props: {
     if (needsStdin(props.lang, props.code)) {
       stdio.clear();
       if (props.lang !== 'python') {
-        stdio.write(
-          'This program requires stdin input which is currently only supported for Python.\n' +
-          '本程序需要标准输入，目前仅支持 Python。'
-        );
+        stdio.write(t('stdin.unsupported'));
         return;
       }
       if (!showInput()) {
@@ -119,7 +117,7 @@ export default (props: {
         const lines = rawStdin().split('\n');
         const prompts = allPrompts();
         setStdinHistory(lines.map((line, i) => ({
-          prompt: prompts[i]?.label || `Input #${i + 1}`,
+          prompt: prompts[i]?.label || t('stdin.label.input', { n: i + 1 }),
           response: line,
         })));
         stdio.setStdin(rawStdin());
@@ -204,10 +202,10 @@ export default (props: {
     <div class="code-emitter-block solid">
       <Show when={ !running() && !hasResult() && !showInput()}>
         <div class="code-emitter-actions">
-          <i aria-label="toggle-input" class="button-input-toggle" onClick={() => { if (showInput()) closeInput(); else showInputForm(); }} title="Toggle input area">
+          <i aria-label={t('ui.toggleInput')} class="button-input-toggle" onClick={() => { if (showInput()) closeInput(); else showInputForm(); }} title={t('ui.toggleInput')}>
             <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" width="0.7em" height="0.6em" viewBox="0 0 160 112"><rect x="12" y="10" width="136" height="92" rx="4" fill="none" stroke="currentColor" stroke-width="20"/><circle cx="41" cy="36" r="7" fill="currentColor"/><circle cx="67" cy="36" r="7" fill="currentColor"/><circle cx="93" cy="36" r="7" fill="currentColor"/><circle cx="119" cy="36" r="7" fill="currentColor"/><circle cx="41" cy="58" r="7" fill="currentColor"/><circle cx="67" cy="58" r="7" fill="currentColor"/><circle cx="93" cy="58" r="7" fill="currentColor"/><circle cx="119" cy="58" r="7" fill="currentColor"/><rect x="41" y="72" width="78" height="14" rx="7" fill="currentColor"/></svg>
           </i>
-          <i aria-label="play" class="button-play" onClick={() => { void run(); }}><Icon name="play"/></i>
+          <i aria-label={t('ui.play')} class="button-play" onClick={() => { void run(); }}><Icon name="play"/></i>
         </div>
       </Show>
 
@@ -218,19 +216,19 @@ export default (props: {
           {/* Desktop: SAB single-field pre-fill */}
           <Show when={hasSAB}>
             <div class="code-interactive-stdin">
-              <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
+              <span class="code-interactive-stdin-close" onClick={closeInput} title={t('ui.closeInput')}>
                 <Icon name="clear"/>
               </span>
               <input
                 class="code-interactive-stdin-input"
-                placeholder={firstPrompt() || 'Enter input for first prompt…'}
+                placeholder={firstPrompt() || t('stdin.firstPromptPlaceholder')}
                 value={input()}
                 onInput={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { void run(); }
                 }}
               />
-              <i aria-label="run" class="code-prefill-run" onClick={() => { void run(); }} title="Run (Enter)">
+              <i aria-label={t('ui.run')} class="code-prefill-run" onClick={() => { void run(); }} title={t('ui.run')}>
                 <Icon name="play"/>
               </i>
             </div>
@@ -265,10 +263,10 @@ export default (props: {
               {/* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment -- re-enable rules after SolidJS For callback block */}
             </div>
             <div class="stdin-form-footer">
-              <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
+              <span class="code-interactive-stdin-close" onClick={closeInput} title={t('ui.closeInput')}>
                 <Icon name="clear"/>
               </span>
-              <i aria-label="run" class="code-prefill-run" onClick={() => { void run(); }} title="Run (Enter)">
+              <i aria-label={t('ui.run')} class="code-prefill-run" onClick={() => { void run(); }} title={t('ui.run')}>
                 <Icon name="play"/>
               </i>
             </div>
@@ -277,20 +275,20 @@ export default (props: {
           {/* Interactive (loop): raw textarea */}
           <Show when={!hasSAB && isInteractive()}>
             <div class="stdin-textarea-hint">
-              This program uses interactive input. Each line feeds one input() call in order.
+              {t('stdin.interactive.hint')}
             </div>
             <textarea
               class="code-emitter-input"
               rows={Math.max(5, allPrompts().length + 2)}
-              placeholder={'Each line = one input() call.\nExample — a 3-line pre-fill for a program that reads name, age, city:\nAlice\n25\nNew York'}
+              placeholder={t('stdin.interactive.placeholder')}
               value={rawStdin()}
               onInput={(e) => setRawStdin(e.target.value)}
             />
             <div class="stdin-form-footer">
-              <span class="code-interactive-stdin-close" onClick={closeInput} title="Close input">
+              <span class="code-interactive-stdin-close" onClick={closeInput} title={t('ui.closeInput')}>
                 <Icon name="clear"/>
               </span>
-              <i aria-label="run" class="code-prefill-run" onClick={() => { void run(); }} title="Run (Enter)">
+              <i aria-label={t('ui.run')} class="code-prefill-run" onClick={() => { void run(); }} title={t('ui.run')}>
                 <Icon name="play"/>
               </i>
             </div>
@@ -323,7 +321,7 @@ export default (props: {
           {/* Interactive input popup */}
           <Show when={running() && interactivePrompt() !== null}>
             <div class="code-interactive-stdin">
-              <span class="code-interactive-stdin-close" onClick={cancelInteractiveStdin} title="Cancel (send empty input)">
+              <span class="code-interactive-stdin-close" onClick={cancelInteractiveStdin} title={t('ui.cancelStdin')}>
                 <Icon name="clear"/>
               </span>
               <input
@@ -337,15 +335,15 @@ export default (props: {
                   if (e.key === 'Escape') cancelInteractiveStdin();
                 }}
               />
-              <i aria-label="submit" class="code-prefill-run" onClick={submitInteractiveStdin} title="Submit (Enter)">
+              <i aria-label={t('ui.submit')} class="code-prefill-run" onClick={submitInteractiveStdin} title={t('ui.submit')}>
                 <Icon name="play"/>
               </i>
             </div>
             <div class="code-interactive-actions">
               <span></span>
-              <button class="code-stop-button" onClick={stop} title="Terminate execution immediately">
+              <button class="code-stop-button" onClick={stop} title={t('ui.terminate')}>
                 <Icon name="stop"/>
-                Stop
+                {t('ui.stop')}
               </button>
             </div>
           </Show>
@@ -362,7 +360,7 @@ export default (props: {
             </Show>
             <div class="code-area-header">
               <span></span>
-              <span class="button-area-close" onClick={() => { stdio.clear(); setStdinHistory([]); }} title="Clear output">
+              <span class="button-area-close" onClick={() => { stdio.clear(); setStdinHistory([]); }} title={t('ui.clearOutput')}>
                 <Icon name="clear"/>
               </span>
             </div>

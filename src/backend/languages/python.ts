@@ -1,5 +1,6 @@
 import type { Backend, Stdio } from '../';
 import { extractInputPrompts } from '../stdin-detect';
+import { t } from '../../i18n';
 
 const default_cdn = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/';
 
@@ -20,6 +21,7 @@ interface WorkerMessage {
   type: 'stdout' | 'stderr' | 'stdin' | 'complete' | 'error' | 'ready';
   text?: string;
   error?: string;
+  code?: string;
   interactive?: boolean;
   prompt?: string;
 }
@@ -73,7 +75,7 @@ function workerSource(): string {
     '  try {',
     '    importScripts(cdn + "pyodide.js");',
     '  } catch (e) {',
-    '    self.postMessage({ type: "error", error: "Failed to load Pyodide: " + (e.message || String(e)) });',
+    '    self.postMessage({ type: "error", code: "LOAD_FAILED", error: e.message || String(e) });',
     '    return;',
     '  }',
     '  self.loadPyodide({ indexURL: cdn }).then(function(eng) {',
@@ -92,7 +94,7 @@ function workerSource(): string {
     '    }',
     '    pendingRuns = [];',
     '  }).catch(function(e) {',
-    '    self.postMessage({ type: "error", error: "Pyodide init failed: " + (e.message || String(e)) });',
+    '    self.postMessage({ type: "error", code: "INIT_FAILED", error: e.message || String(e) });',
     '  });',
     '}',
     '',
@@ -101,7 +103,7 @@ function workerSource(): string {
     // blocks the Worker until the user types something in the Obsidian UI.
     'function runCode(code, stdinLines) {',
     '  if (!pyodide) {',
-    '    self.postMessage({ type: "error", error: "Pyodide not initialized" });',
+    '    self.postMessage({ type: "error", code: "NOT_INITIALIZED" });',
     '    return;',
     '  }',
     '  var linesJson = JSON.stringify(stdinLines || []);',
@@ -202,11 +204,23 @@ function createMainThreadBackend(cdn: string): Backend {
       // All symbols used (print, RuntimeError, str, len) are builtins.
       const linesJson = JSON.stringify(stdinLines);
       const promptsJson = JSON.stringify(promptLabels);
+
+      // Build translated error template. {label} and {consumed} are
+      // Python str.format() placeholders filled at runtime.
+      const errorTpl = JSON.stringify(t('stdin.insufficient.body'));
+      // Label template e.g. "Input #{_n}" (en) or "输入 #{_n}" (zh)
+      const labelTpl = JSON.stringify(
+        t('stdin.label.input', { n: 0 }).replace('0', '{_n}')
+      );
+
       const setupCode = [
         '__stdin_lines = ' + linesJson,
         '__stdin_prompts = ' + promptsJson,
         '__stdin_idx = [0]',
         '__stdin_empty = [0]',
+        '',
+        '_err_tpl = ' + errorTpl,
+        '_lbl_tpl = ' + labelTpl,
         '',
         'def __my_input(prompt=""):',
         '    if __stdin_idx[0] < len(__stdin_lines):',
@@ -218,17 +232,10 @@ function createMainThreadBackend(cdn: string): Backend {
         '    if __stdin_empty[0] >= 10:',
         '        _n = __stdin_idx[0] + 1',
         '        _label = __stdin_prompts[__stdin_idx[0]] if __stdin_idx[0] < len(__stdin_prompts) else ""',
-        '        _desc = f"第{_n}个输入（\'{_label}\'）" if _label else f"第{_n}个输入"',
-        '        _msg = (',
-        '            "预输入数据不完整！" + _desc + "缺少预填数据。\\n"',
-        '            "已消耗 " + str(len(__stdin_lines)) + " 行预填数据，程序继续请求输入（已连续10次空输入）。\\n"',
-        '            "请在输入框中补充更多行数据后重新运行。\\n\\n"',
-        '            "Insufficient stdin! " + _desc + " lacks pre-filled data.\\n"',
-        '            "Exhausted " + str(len(__stdin_lines)) + " pre-filled lines, "',
-        '            "program continues requesting input (10 consecutive empty returns).\\n"',
-        '            "Please add more lines and re-run."',
-        '        )',
-        '        raise RuntimeError("".join(_msg))',
+        '        _desc = _lbl_tpl.format(_n=_n)',
+        '        if _label:',
+        '            _desc = _desc + " (\\\'" + _label + "\\\')"',
+        '        raise RuntimeError(_err_tpl.format(label=_desc, consumed=str(len(__stdin_lines))))',
         '    print()',
         '    return ""',
         '',
@@ -247,7 +254,7 @@ function createMainThreadBackend(cdn: string): Backend {
       try {
         await eng.runPythonAsync(setupCode);
       } catch (e: unknown) {
-        output.stderr('[Setup Error] ' + (e instanceof Error ? e.message : String(e)));
+        output.stderr(t('pyodide.setupError', { message: e instanceof Error ? e.message : String(e) }));
         return;
       }
 
@@ -255,12 +262,12 @@ function createMainThreadBackend(cdn: string): Backend {
       try {
         const myInput = eng.globals.get('__my_input');
         if (!myInput) {
-          output.stderr('[Setup Error] Failed to inject input replacement');
+          output.stderr(t('pyodide.injectError'));
           return;
         }
         eng.globals.set('input', myInput);
       } catch (e: unknown) {
-        output.stderr('[Setup Error] ' + (e instanceof Error ? e.message : String(e)));
+        output.stderr(t('pyodide.setupError', { message: e instanceof Error ? e.message : String(e) }));
         return;
       }
 
@@ -340,11 +347,7 @@ function createWorkerBackend(cdn: string): Backend {
           stdinEmptyCount++;
           if (stdinEmptyCount >= 10) {
             if (currentOutput) currentOutput.stderr(
-              '⚠️ 预输入数据不完整！已消耗所有 ' + stdinLines.length + ' 行预填数据。\n' +
-                '程序继续请求输入（已连续10次空输入）。\n' +
-                '请在输入框中补充更多行数据后重新运行。\n\n' +
-                'Insufficient stdin! Exhausted all ' + stdinLines.length + ' pre-filled lines.\n' +
-                'Please add more lines and re-run.'
+              t('stdin.insufficient.worker', { lines: stdinLines.length })
             );
             runResolve?.();
             return;
@@ -355,10 +358,21 @@ function createWorkerBackend(cdn: string): Backend {
       case 'complete':
         runResolve?.();
         break;
-      case 'error':
-        if (currentOutput && data.error) currentOutput.stderr(data.error);
+      case 'error': {
+        let msg: string;
+        if (data.code === 'LOAD_FAILED') {
+          msg = t('pyodide.loadError', { message: data.error || '' });
+        } else if (data.code === 'INIT_FAILED') {
+          msg = t('pyodide.initError', { message: data.error || '' });
+        } else if (data.code === 'NOT_INITIALIZED') {
+          msg = t('pyodide.notInitialized');
+        } else {
+          msg = data.error || t('pyodide.genericError', { message: '' });
+        }
+        if (currentOutput) currentOutput.stderr(msg);
         runResolve?.();
         break;
+      }
       default:
         break;
       }
@@ -366,7 +380,7 @@ function createWorkerBackend(cdn: string): Backend {
 
     worker.onerror = (e: ErrorEvent) => {
       console.error('[Code Runner] Worker error:', e.message);
-      if (currentOutput) currentOutput.stderr('Worker error: ' + (e.message || 'Unknown error'));
+      if (currentOutput) currentOutput.stderr(t('worker.error', { message: e.message || 'Unknown error' }));
       runResolve?.();
     };
 

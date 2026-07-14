@@ -1,10 +1,12 @@
 import type { Stdio } from '..';
-import { run } from '../providers/sololearn';
+import { run, splitDiagnostics, formatWarnings } from '../providers/sololearn';
 
 export default async function (code: string, stdio: Stdio): Promise<void> {
   const res = await run(code, 'r', stdio.getStdin());
   if (res.success) {
-    stdio.stdout(res.data.output);
+    const { output, diagnostics } = splitDiagnostics(res.data.output);
+    if (output) stdio.stdout(output);
+    if (diagnostics) stdio.write(formatWarnings(diagnostics));
   } else {
     stdio.stderr((res.errors ?? []).join('\n'))
   }

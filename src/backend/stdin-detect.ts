@@ -2,6 +2,8 @@
  * stdin-detect.ts — Parse & analyze stdin-reading patterns in source code.
  */
 
+import { t } from '../i18n';
+
 /** Per-language regex patterns that indicate stdin usage. */
 const STDIN_PATTERNS: Record<string, RegExp[]> = {
   // Python: input(), sys.stdin.read(), sys.stdin.readline()
@@ -161,7 +163,7 @@ export function extractInputPrompts(lang: string, code: string): InputPrompt[] {
     // Case 1: input() — no arguments
     const noArgMatch = after.match(/^\s*\)/);
     if (noArgMatch) {
-      results.push({ prompt: '', label: `Input #${counter}`, dynamic: false });
+      results.push({ prompt: '', label: t('stdin.label.input', { n: counter }), dynamic: false });
       continue;
     }
 
@@ -174,7 +176,7 @@ export function extractInputPrompts(lang: string, code: string): InputPrompt[] {
     }
 
     // Case 3: input(f"..."), input(var), etc. — dynamic prompt
-    results.push({ prompt: '', label: `Input #${counter} (动态)`, dynamic: true });
+    results.push({ prompt: '', label: t('stdin.label.dynamic', { n: counter }), dynamic: true });
   }
 
   return results;

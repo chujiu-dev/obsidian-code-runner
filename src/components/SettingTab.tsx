@@ -1,66 +1,82 @@
 import type { PluginSetting } from '../setting';
 import type { SetStoreFunction } from 'solid-js/store';
+import type { LanguageSetting } from '../i18n/types';
+import { t, setLanguageSetting } from '../i18n';
 
 
-export default (props: { settings: PluginSetting, settingsUpdate: SetStoreFunction<PluginSetting> } ) => {
+export default (props: { settings: PluginSetting, settingsUpdate: SetStoreFunction<PluginSetting>, save: () => void } ) => {
+
+  // Migrate legacy 'zh' setting → 'auto' (manual Chinese option removed; auto-detection still covers zh)
+  const langValue = () => props.settings.language === 'zh' ? 'auto' : props.settings.language;
 
   return <>
-    {/* ── Coming Soon ── */}
-    <div class="setting-item-heading" style="border-top: 1px solid var(--background-modifier-border); margin-top: 1em; padding-top: 1em;">
-      <div class="setting-item-name" style="color: var(--text-muted); font-size: 0.85em;">Coming Soon</div>
-    </div>
-
-    <div class="setting-item mod-toggle">
-      <div class="setting-item-info">
-        <div class="setting-item-name">Auto stdin detect</div>
-        <div class="setting-item-description">Automatically expand the input area when code contains stdin-reading calls such as input(), scanf(), or std::cin — no need to click the keyboard toggle. This feature is under development and will ship in a future update.</div>
-      </div>
-      <div class="setting-item-control">
-        <div class="checkbox-container" classList={ { 'is-enabled': props.settings.autoStdin }}  onClick={() => props.settingsUpdate('autoStdin', (v) => !v)}>
-          <input type="checkbox" checked={props.settings.autoStdin} disabled />
-        </div>
-      </div>
-    </div>
-
+    {/* ── Language ── */}
     <div class="setting-item">
       <div class="setting-item-info">
-        <div class="setting-item-name">Plugin language</div>
-        <div class="setting-item-description">Switch the plugin interface language. Planned for a future release; English is the default for now.</div>
+        <div class="setting-item-name">{t('settings.language.name')}</div>
+        <div class="setting-item-description">{t('settings.language.desc')}</div>
       </div>
       <div class="setting-item-control">
-        <select class="dropdown" disabled style="opacity: 0.5;">
-          <option value="en" selected={props.settings.language === 'en'}>English</option>
-          <option value="zh" selected={props.settings.language === 'zh'}>简体中文</option>
+        <select
+          class="dropdown"
+          value={langValue()}
+          onChange={(e) => {
+            const lang = e.target.value as LanguageSetting;
+            setLanguageSetting(lang);
+            props.settingsUpdate('language', lang);
+            props.save();
+          }}
+        >
+          <option value="auto">{t('settings.language.auto')}</option>
+          <option value="en">English</option>
         </select>
       </div>
     </div>
 
-    {/* ── Additional Plugins — Coming Soon ── */}
-    <div class="setting-item-heading" style="border-top: 1px solid var(--background-modifier-border); margin-top: 1em; padding-top: 1em;">
-      <div class="setting-item-name" style="color: var(--text-muted); font-size: 0.85em;">Additional Plugins — Coming Soon</div>
-    </div>
-
-    <div class="setting-item mod-toggle">
+    {/* ── Coming Soon ── */}
+    <div class="setting-item setting-item-heading" style="margin-top: 1.5em;">
       <div class="setting-item-info">
-        <div class="setting-item-name">Code auto-complete</div>
-        <div class="setting-item-description">Context-aware code completions that suggest variables, functions, and snippets as you type. Planned as a standalone companion plugin that pairs with Code Runner.</div>
-      </div>
-      <div class="setting-item-control">
-        <div class="checkbox-container">
-          <input type="checkbox" checked={false} disabled />
+        <div class="setting-item-name" style="color: var(--text-muted); font-weight: 600;">
+          {t('settings.comingSoon.heading')}
         </div>
       </div>
     </div>
 
-    <div class="setting-item mod-toggle">
+    {/* Context-Aware I/O Prompts */}
+    <div class="setting-item">
       <div class="setting-item-info">
-        <div class="setting-item-name">Enhanced syntax highlighting</div>
-        <div class="setting-item-description">Semantic-level highlighting beyond block-level coloring, leveraging Code Runner's language backends for accurate token coloring. Planned as a standalone companion plugin that pairs with Code Runner.</div>
+        <div class="setting-item-name">{t('settings.ioPrompts.name')}</div>
+        <div class="setting-item-description">{t('settings.ioPrompts.desc')}</div>
       </div>
       <div class="setting-item-control">
-        <div class="checkbox-container">
-          <input type="checkbox" checked={false} disabled />
+        <div class="checkbox-container" style="opacity: 0.4; pointer-events: none;">
+          <input type="checkbox" disabled />
+          <span class="checkbox-tick"></span>
         </div>
+      </div>
+    </div>
+
+    {/* Code auto-complete */}
+    <div class="setting-item">
+      <div class="setting-item-info">
+        <div class="setting-item-name">{t('settings.autoComplete.name')}</div>
+        <div class="setting-item-description">{t('settings.autoComplete.desc')}</div>
+      </div>
+      <div class="setting-item-control">
+        <div class="checkbox-container" style="opacity: 0.4; pointer-events: none;">
+          <input type="checkbox" disabled />
+          <span class="checkbox-tick"></span>
+        </div>
+      </div>
+    </div>
+
+    {/* ── Additional Plugins ── */}
+    <div class="setting-item setting-item-heading" style="margin-top: 1.5em;">
+      <div class="setting-item-info">
+        <div class="setting-item-name" style="color: var(--text-muted); font-weight: 600;">
+          {t('settings.additionalPlugins.heading')}
+        </div>
+        <div class="setting-item-description">{t('settings.additionalPlugins.desc')}</div>
       </div>
     </div>
   </>;
