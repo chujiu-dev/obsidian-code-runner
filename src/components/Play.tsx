@@ -8,7 +8,6 @@ import Icon from './Icon';
 import { needsStdin, extractInputPrompts, isInteractiveStdin } from '../backend/stdin-detect';
 import type { InputPrompt } from '../backend/stdin-detect';
 import { t } from '../i18n';
-import { getApp } from '../setting';
 
 function hashCode(str: string): string {
   let hash = 5381;
@@ -149,10 +148,12 @@ export default (props: {
   };
 
   const readFromCache = async () => {
-    const a = getApp().loadLocalStorage(cacheKey());
+    // eslint-disable-next-line no-restricted-syntax -- Obsidian's App.loadLocalStorage requires minAppVersion >= 1.x; using raw localStorage preserves compatibility with older Obsidian installs
+    const a = localStorage.getItem(cacheKey());
     if (!a) {
       return undefined;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any; CacheEntry is a local interface compatible with the JSON shape
     const b = JSON.parse(a) as CacheEntry;
     const c = b[codeSum()];
     if (!c) {
@@ -161,14 +162,16 @@ export default (props: {
     return c.outputs;
   };
   const writeToCache = () => {
-    const raw = getApp().loadLocalStorage(cacheKey());
+    // eslint-disable-next-line no-restricted-syntax -- Obsidian's App.loadLocalStorage requires minAppVersion >= 1.x; using raw localStorage preserves compatibility with older Obsidian installs
+    const a = localStorage.getItem(cacheKey());
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any; CacheEntry is a local interface compatible with the JSON shape
-    const b: CacheEntry = raw ? JSON.parse(raw) : {};
+    const b: CacheEntry = a ? JSON.parse(a) : {};
     b[codeSum()] = {
       outputs: outputs(),
       lastAccessTime: Date.now()
     };
-    getApp().saveLocalStorage(cacheKey(), JSON.stringify(b));
+    // eslint-disable-next-line no-restricted-syntax -- Obsidian's App.saveLocalStorage requires minAppVersion >= 1.x; using raw localStorage preserves compatibility with older Obsidian installs
+    localStorage.setItem(cacheKey(), JSON.stringify(b));
   };
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- SolidJS onMount accepts async callbacks; the Promise is fire-and-forget
