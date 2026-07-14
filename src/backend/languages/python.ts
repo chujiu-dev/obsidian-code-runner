@@ -278,7 +278,7 @@ function createMainThreadBackend(cdn: string): Backend {
         output.stderr(e instanceof Error ? e.message : String(e));
       }
       // Force-flush stdout buffer for output without trailing newline
-      try { await eng.runPythonAsync('print()'); } catch {}
+      try { await eng.runPythonAsync('print()'); } catch { /* best-effort flush; ignore if Pyodide has already shut down */ }
     } catch (e: unknown) {
       output.stderr(e instanceof Error ? e.message : String(e));
     } finally {

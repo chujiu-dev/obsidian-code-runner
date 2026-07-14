@@ -8,6 +8,7 @@ import Icon from './Icon';
 import { needsStdin, extractInputPrompts, isInteractiveStdin } from '../backend/stdin-detect';
 import type { InputPrompt } from '../backend/stdin-detect';
 import { t } from '../i18n';
+import { getApp } from '../setting';
 
 function hashCode(str: string): string {
   let hash = 5381;
@@ -148,8 +149,7 @@ export default (props: {
   };
 
   const readFromCache = async () => {
-    // eslint-disable-next-line no-restricted-syntax -- localStorage is the only cross-session persistence API for output caching in Obsidian
-    const a = localStorage.getItem(cacheKey());
+    const a = getApp().loadLocalStorage(cacheKey());
     if (!a) {
       return undefined;
     }
@@ -161,16 +161,14 @@ export default (props: {
     return c.outputs;
   };
   const writeToCache = () => {
-    // eslint-disable-next-line no-restricted-syntax -- localStorage is the only cross-session persistence API for output caching in Obsidian
-    const a = localStorage.getItem(cacheKey());
+    const raw = getApp().loadLocalStorage(cacheKey());
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any; CacheEntry is a local interface compatible with the JSON shape
-    const b: CacheEntry = a ? JSON.parse(a) : {};
+    const b: CacheEntry = raw ? JSON.parse(raw) : {};
     b[codeSum()] = {
       outputs: outputs(),
       lastAccessTime: Date.now()
     };
-    // eslint-disable-next-line no-restricted-syntax -- localStorage is the only cross-session persistence API for output caching in Obsidian
-    localStorage.setItem(cacheKey(), JSON.stringify(b));
+    getApp().saveLocalStorage(cacheKey(), JSON.stringify(b));
   };
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- SolidJS onMount accepts async callbacks; the Promise is fire-and-forget

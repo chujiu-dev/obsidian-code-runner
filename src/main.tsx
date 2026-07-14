@@ -9,7 +9,7 @@ import CodeBlock from './components/CodeBlock';
 import { needsStdin, supportsStdin } from './backend/stdin-detect';
 import { initI18n, t } from './i18n';
 
-import SETTING_DEFAULT, { type PluginSetting } from './setting';
+import SETTING_DEFAULT, { type PluginSetting, setApp } from './setting';
 
 /**
  * Public API exposed to other plugins via `app.plugins.plugins['code-runner'].api`.
@@ -83,6 +83,7 @@ export default class CodeEmitterPlugin extends Plugin {
   async onload() {
     // Platform.isDesktop && window.hmr && window.hmr(this, 2000);
 
+    setApp(this.app);
     await this.loadSettings();
 
     this.addSettingTab(new PluginSolidSettingTab(
