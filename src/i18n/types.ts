@@ -28,6 +28,11 @@ export interface LocaleMap {
   'settings.language.name': string;
   'settings.language.desc': string;
   'settings.language.auto': string;
+  'settings.general': string;
+  'settings.runtime': string;
+  'settings.experimental': string;
+  'settings.pythonCdn.name': string;
+  'settings.pythonCdn.desc': string;
   'settings.comingSoon.heading': string;
   'settings.ioPrompts.name': string;
   'settings.ioPrompts.desc': string;
