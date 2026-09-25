@@ -14,6 +14,7 @@
 
 import { requestUrl, type RequestUrlParam, type RequestUrlResponse } from 'obsidian';
 import { t } from '../i18n';
+import { errorText } from './util';
 import type { Backend } from './index';
 import type { Stdio } from './store';
 
@@ -102,10 +103,13 @@ export function hostOf(url: string): string {
  */
 export function withTimeout<T>(promise: Promise<T>, ms: number = REQUEST_TIMEOUT_MS, host = ''): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new TimeoutError(ms, host)), ms);
+    // `window.`-qualified: these timers belong to the window the run started in,
+    // which is what keeps a popout window's run alive when the main window
+    // changes (Obsidian's own guidance, and the community review lints for it).
+    const timer = window.setTimeout(() => reject(new TimeoutError(ms, host)), ms);
     promise.then(
-      (value) => { clearTimeout(timer); resolve(value); },
-      (error: unknown) => { clearTimeout(timer); reject(error instanceof Error ? error : new Error(String(error))); },
+      (value) => { window.clearTimeout(timer); resolve(value); },
+      (error: unknown) => { window.clearTimeout(timer); reject(error instanceof Error ? error : new Error(errorText(error))); },
     );
   });
 }
@@ -161,6 +165,15 @@ export async function importLibrary<T>(
 
   // Computed specifier: the URL has to stay a real `import()` in the CJS build
   // (same reason as `python.ts`'s Pyodide specifier), not a `require`.
+  //
+  // The community review's security lint flags any `import()` whose specifier
+  // came in as an argument, and it is right to in general. Here the two arguments
+  // are the module constants `ts.ts` and `wy.ts` declare — a pinned jsDelivr
+  // `+esm` URL each, no user input and no computed host — and the alternative
+  // (bundling the TypeScript compiler, ~3 MB minified, into every install) is
+  // worse for every user than the download the language already needs. The one
+  // caller whose URL *is* configurable is `python.ts`, called out there.
+  // eslint-disable-next-line no-unsanitized/method -- URL is a pinned module constant at both call sites; see above
   const module = await withTimeout(import(/* @vite-ignore */ url), ms, host) as Record<string, unknown>;
   // The `default` export is where an ES-module build puts the whole namespace
   // object (TypeScript's `+esm` is `export{k7 as default}`); the fallback covers
@@ -193,7 +206,7 @@ export function failureMessage(error: unknown, ctx?: { url?: string }): string |
   if (error instanceof HttpError) return t('net.http', { host, status: error.status });
   if (error instanceof LibraryError) return t('net.badLibrary', { host, lib: error.library });
 
-  const message = error instanceof Error ? error.message : String(error);
+  const message = errorText(error);
   if (LOOKS_NETWORK.test(message)) return t('net.failed', { host });
   return null;
 }

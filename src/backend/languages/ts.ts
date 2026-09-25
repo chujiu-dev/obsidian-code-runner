@@ -23,9 +23,9 @@ export default (function (): Backend {
     if (!tsc) {
       await load?.();
     }
-    const jsCode = tsc!.transpile(`(async () => { ${code} })();`, {
-      module: tsc!.ModuleKind.ESNext,
-      target: tsc!.ScriptTarget.ES2018
+    const jsCode = tsc.transpile(`(async () => { ${code} })();`, {
+      module: tsc.ModuleKind.ESNext,
+      target: tsc.ScriptTarget.ES2018
     });
     await js(jsCode, stdio);
   };
@@ -40,7 +40,6 @@ export default (function (): Backend {
       },
     );
     backend.loading = false;
-    console.log('typescript loaded.');
   };
 
   return backend;

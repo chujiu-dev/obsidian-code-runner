@@ -128,7 +128,9 @@ export default class CodeEmitterPlugin extends Plugin {
       {
         settings: this.settings,
         settingsUpdate: this.settingsUpdate,
-        save: () => this.saveSettings(),
+        // Fire-and-forget: the settings tab has nothing to show while the write
+        // is in flight, and `saveData` is Obsidian's own JSON write.
+        save: () => { void this.saveSettings(); },
         // Editing the CDN in the settings tab takes effect on the next run.
         onCdnChange: (cdn: string) => setPythonCdn(cdn),
       }
@@ -184,7 +186,6 @@ export default class CodeEmitterPlugin extends Plugin {
     setSkeletonEnabled(merged.autoSkeleton !== false);
   }
   async saveSettings(): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Obsidian's saveData accepts the SolidJS unwrapped store object
     await this.saveData(unwrap(this.settings));
   }
 }

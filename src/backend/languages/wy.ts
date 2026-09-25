@@ -24,9 +24,7 @@ export default (function (): Backend {
     if (!wenyan) {
       await load?.();
     }
-    const jsCode = wenyan!.compile(code);
-    console.log('wenyan:');
-    console.log(jsCode);
+    const jsCode = wenyan.compile(code);
     await js(`(async () => { ${jsCode} })();`, stdio);
   };
   backend.loading = true;
@@ -40,7 +38,6 @@ export default (function (): Backend {
       },
     );
     backend.loading = false;
-    console.log('wenyan loaded.');
   };
 
   return backend;

@@ -1,6 +1,7 @@
 import type { Backend, Stdio } from '../';
 import { extractInputPrompts } from '../stdin-detect';
 import { failureMessage, hostOf, isOffline, OfflineError } from '../net';
+import { errorText } from '../util';
 import { t } from '../../i18n';
 import { DEFAULT_PYODIDE_CDN } from '../../setting';
 
@@ -268,16 +269,27 @@ let enginePromise: Promise<PyodideEngine> | null = null;
 
 async function getEngine(cdn: string): Promise<PyodideEngine> {
   if (engine) return engine;
-  if (enginePromise) return enginePromise;
+  // Written as a comparison rather than `if (enginePromise)`: with
+  // `strictNullChecks` off the type says a Promise is always here, and a lint
+  // rule that keeps Promises out of boolean positions reads the bare form as a
+  // test on the Promise itself.
+  if (enginePromise !== null) return enginePromise;
 
   enginePromise = (async () => {
-    console.log('[Code Runner] Loading Pyodide on main thread...');
+    console.debug('[Code Runner] Loading Pyodide on main thread...');
 
     const g = window as unknown as Record<string, unknown>;
     const savedProcess = g.process;
     g.process = { browser: true };
 
     try {
+      // The specifier is the CDN the user chose (Settings → Python → CDN), and
+      // a WebAssembly runtime cannot be shipped inside `main.js` — this is the
+      // one computed `import()` in the plugin that is genuinely user-supplied.
+      // The community review's security lint flags it on principle; the reason
+      // it is accepted here is that the URL only ever points at a host the user
+      // configured themselves, and the default is jsDelivr.
+      // eslint-disable-next-line no-unsanitized/method -- URL is the user's own Python CDN setting; Pyodide cannot be bundled
       const mod = await import(/* @vite-ignore */ `${cdn}pyodide.mjs`) as { loadPyodide: (opts: { indexURL: string }) => Promise<PyodideEngine> };
       engine = await mod.loadPyodide({ indexURL: cdn });
     } finally {
@@ -285,7 +297,7 @@ async function getEngine(cdn: string): Promise<PyodideEngine> {
     }
 
     await engine.loadPackage('micropip');
-    console.log('[Code Runner] Pyodide ready.');
+    console.debug('[Code Runner] Pyodide ready.');
     return engine;
   })();
 
@@ -295,6 +307,17 @@ async function getEngine(cdn: string): Promise<PyodideEngine> {
 // ── Main-thread backend (fallback, always available) ──
 // Falls back to pre-filled stdin only: the run happens on the UI thread, so
 // there is no way to ask the user for input mid-run, nor to interrupt one.
+
+/**
+ * Swallows a run's outcome, so a caller's serialization chain never rejects.
+ *
+ * A named `void` function rather than an inline `.then(() => undefined, …)`:
+ * with `strictNullChecks` off the literal's `undefined` widens to `any`, and
+ * the community review's type-aware lint reads the `Promise<any>` that comes
+ * out of it as an unsafe assignment.
+ */
+function dropOutcome(): void { /* the outcome is deliberately dropped */ }
+
 function createMainThreadBackend(): Backend & { dispose: () => void } {
   // Runs from different code blocks share this engine, its stdout handlers and
   // the single pyodideMplTarget slot, so they are serialized.
@@ -378,7 +401,7 @@ function createMainThreadBackend(): Backend & { dispose: () => void } {
       try {
         await eng.runPythonAsync(setupCode);
       } catch (e: unknown) {
-        output.stderr(t('pyodide.setupError', { message: e instanceof Error ? e.message : String(e) }));
+        output.stderr(t('pyodide.setupError', { message: errorText(e) }));
         return;
       }
 
@@ -391,7 +414,7 @@ function createMainThreadBackend(): Backend & { dispose: () => void } {
         }
         eng.globals.set('input', myInput);
       } catch (e: unknown) {
-        output.stderr(t('pyodide.setupError', { message: e instanceof Error ? e.message : String(e) }));
+        output.stderr(t('pyodide.setupError', { message: errorText(e) }));
         return;
       }
 
@@ -399,12 +422,12 @@ function createMainThreadBackend(): Backend & { dispose: () => void } {
       try {
         await eng.runPythonAsync(code);
       } catch (e: unknown) {
-        output.stderr(e instanceof Error ? e.message : String(e));
+        output.stderr(errorText(e));
       }
       // Force-flush stdout buffer for output without trailing newline
       try { await eng.runPythonAsync('print()'); } catch { /* best-effort flush; ignore if Pyodide has already shut down */ }
     } catch (e: unknown) {
-      output.stderr(failureMessage(e) ?? (e instanceof Error ? e.message : String(e)));
+      output.stderr(failureMessage(e) ?? errorText(e));
     } finally {
       delete (activeDocument as unknown as Record<string, unknown>)['pyodideMplTarget'];
     }
@@ -413,7 +436,7 @@ function createMainThreadBackend(): Backend & { dispose: () => void } {
   const backend: Backend & { dispose: () => void } = (code, output) => {
     const task = chain.then(() => execute(code, output));
     // Keep the chain alive whatever happens to an individual run.
-    chain = task.then(() => undefined, () => undefined);
+    chain = task.then(dropOutcome, dropOutcome);
     return task;
   };
 
@@ -452,9 +475,9 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
   // The run currently inside the Worker, if any.
   let activeOutput: Stdio | null = null;
   let runResolve: (() => void) | null = null;
-  let killTimer: ReturnType<typeof setTimeout> | null = null;
-  let rearmTimer: ReturnType<typeof setInterval> | null = null;
-  let loadTimer: ReturnType<typeof setTimeout> | null = null;
+  let killTimer: number | null = null;
+  let rearmTimer: number | null = null;
+  let loadTimer: number | null = null;
   /** The user asked for this run to stop, so its unwind is not an error. */
   let stopRequested = false;
 
@@ -508,7 +531,7 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
         break;
       case 'ready':
         if (loadTimer !== null) {
-          clearTimeout(loadTimer);
+          window.clearTimeout(loadTimer);
           loadTimer = null;
         }
         setLoading(false);
@@ -535,7 +558,11 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
         // Reporting the raw traceback for a stop the user asked for reads as a
         // crash, so say the same thing the other stop paths say.
         if (stopRequested) {
-          console.log('[Code Runner] Stopped via SIGINT — the runtime stays loaded.');
+          // `debug`, not `log`: this is a diagnostic for an already-explained
+          // stop (the line above the console says "stopped"), and it is the
+          // difference between "the next run is instant" and "the next run
+          // refetches Pyodide" — worth keeping, not worth printing for everyone.
+          console.debug('[Code Runner] Stopped via SIGINT — the runtime stays loaded.');
           if (activeOutput) activeOutput.stderr(t('python.aborted'));
         } else if (activeOutput) {
           activeOutput.stderr(msg);
@@ -561,7 +588,7 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
     // for good and every run would queue behind it. Fail loudly instead, and
     // drop the Worker so the next run starts a clean attempt (the pieces the
     // browser already cached make the retry cheaper).
-    loadTimer = setTimeout(() => {
+    loadTimer = window.setTimeout(() => {
       loadTimer = null;
       console.warn('[Code Runner] Pyodide did not load within ' + LOAD_TIMEOUT_MS + ' ms; giving up on this Worker.');
       if (activeOutput) activeOutput.stderr(t('python.loadTimeout'));
@@ -591,11 +618,11 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
 
   function endRun() {
     if (killTimer !== null) {
-      clearTimeout(killTimer);
+      window.clearTimeout(killTimer);
       killTimer = null;
     }
     if (rearmTimer !== null) {
-      clearInterval(rearmTimer);
+      window.clearInterval(rearmTimer);
       rearmTimer = null;
     }
     clearInterrupt();
@@ -640,7 +667,7 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
       try {
         getWorker().postMessage({ type: 'run', code, stdinLines });
       } catch (e: unknown) {
-        output.stderr(failureMessage(e) ?? (e instanceof Error ? e.message : String(e)));
+        output.stderr(failureMessage(e) ?? errorText(e));
         endRun();
       }
     });
@@ -676,16 +703,19 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
       if (cancelled.delete(output)) return undefined;
       return run(code, output);
     });
-    chain = task.then(() => undefined, () => undefined);
+    chain = task.then(dropOutcome, dropOutcome);
     return task;
   };
 
   backend.terminate = (output?: Stdio) => {
     // Stopping a block whose run has not started yet: drop it from the queue.
     const waitingAt = output ? waiting.indexOf(output) : -1;
-    if (waitingAt >= 0) {
+    // `output &&` repeats what `waitingAt >= 0` already implies (an `undefined`
+    // is never in `waiting`); it is there so the type-checker sees the element
+    // being added is the one that was found, without an assertion to say so.
+    if (output && waitingAt >= 0) {
       waiting.splice(waitingAt, 1);
-      cancelled.add(output as Stdio);
+      cancelled.add(output);
       announceQueue();
       return;
     }
@@ -708,14 +738,14 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
     // it, so one shot is not enough: a program that swallows KeyboardInterrupt
     // (`while True: try: pass except: pass`) would be unkillable again.
     if (killTimer === null) {
-      rearmTimer = setInterval(() => {
+      rearmTimer = window.setInterval(() => {
         if (interruptView) Atomics.store(interruptView, 0, SIGINT);
       }, 250);
 
       // If the run does not end on its own, kill the Worker. That loses the
       // loaded Pyodide instance — the next run has to fetch ~10 MB again — so
       // it is the last resort, and both the log and the message say it happened.
-      killTimer = setTimeout(() => {
+      killTimer = window.setTimeout(() => {
         killTimer = null;
         if (!activeOutput) return;
         console.warn(`[Code Runner] SIGINT did not stop the program within ${STOP_GRACE_MS} ms — restarting the Python runtime (the next run reloads Pyodide).`);
@@ -739,7 +769,7 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
     waiting.length = 0;
     queuedBlocks = new Set();
     if (loadTimer !== null) {
-      clearTimeout(loadTimer);
+      window.clearTimeout(loadTimer);
       loadTimer = null;
     }
     worker?.terminate();
@@ -769,7 +799,10 @@ const backend: Backend = async (code, output) => {
     current = hasSAB ? createWorkerBackend() : createMainThreadBackend();
     liveDispose = () => current?.dispose();
     currentCdnBound = currentCdn;
-    console.log(hasSAB
+    // `debug`: which of the two Python runtimes is in use decides what the
+    // plugin can do (interactive input, stopping a run), so it is the first
+    // thing to look for when a user reports either is missing.
+    console.debug(hasSAB
       ? '[Code Runner] SAB detected — using Worker + SAB backend (pre-fill + interactive)'
       : '[Code Runner] SAB not available — using main-thread backend (pre-fill stdin)');
   }

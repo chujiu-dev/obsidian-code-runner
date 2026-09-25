@@ -1,10 +1,13 @@
 import type { Plugin } from 'obsidian';
 import { debounce, Platform, normalizePath } from 'obsidian';
 
+// Only this module needs it, and only in a dev build (see `vite.config.ts`,
+// which injects it when `mode !== 'production'`), so the declaration lives here
+// rather than in a global typings patch.
 declare global {
-    interface Window {
-        hmr: typeof hmr
-    }
+  interface Window {
+    hmr?: (plugin: Plugin, wait?: number) => void;
+  }
 }
 
 const hmr = (plugin: Plugin, wait= 500) => {
@@ -12,7 +15,9 @@ const hmr = (plugin: Plugin, wait= 500) => {
     return;
   }
 
-  console.log(`[hmr: ${plugin.manifest.name}]`);
+  // `debug` rather than `log`: this runs every time the plugin is reloaded by
+  // the watcher below, and it is only ever useful while developing.
+  console.debug(`[hmr: ${plugin.manifest.name}]`);
 
   const {
     app: {

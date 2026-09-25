@@ -19,6 +19,19 @@ import { exec } from 'child_process';
 
 
 
+/**
+ * The name rollup gave an asset, for `assetFileNames`.
+ *
+ * Read off a local shape rather than `PreRenderedAsset`, whose `name` the
+ * rollup typings mark deprecated in favour of `names`: vite's own
+ * `vite:css-post` calls this hook with a hand-built
+ * `{ type, name, originalFileName, source }` — no `names` at all — so reading
+ * only `names` fails the build with "Cannot read properties of undefined".
+ * `name` first, `names` kept as the fallback for whichever rollup drops it.
+ */
+const assetName = (asset: { name?: string; names?: string[] }): string =>
+  asset.name ?? asset.names?.[0] ?? '';
+
 // https://vitejs.dev/config/
 export default  defineConfig(async ({ mode } ) => {
 
@@ -39,11 +52,12 @@ export default  defineConfig(async ({ mode } ) => {
           const info = this.getModuleInfo(id);
           if (info.isEntry) {
             const code = await fsp.readFile(id, 'utf-8');
-            const { relative, dirname, basename, extname, join } = path;
-            const dir = dirname(id);
+            // Called as `path.*` rather than destructured: the review's lint
+            // reads a method separated from its object as an unbound `this`.
+            const dir = path.dirname(id);
             const inject_code = files
-              .map(v => relative(dir, v))
-              .map(p => join('./', basename(p, extname(p))))
+              .map(v => path.relative(dir, v))
+              .map(p => path.join('./', path.basename(p, path.extname(p))))
               .map(p => `import './${p}'`).join(';');
             return `
             ${inject_code};
@@ -84,7 +98,10 @@ export default  defineConfig(async ({ mode } ) => {
       rollupOptions: {
         output: {
           exports: 'named',
-          assetFileNames: (v) => v.name === 'style.css'? 'styles.css': v.name
+          assetFileNames: (v) => {
+            const name = assetName(v);
+            return name === 'style.css' ? 'styles.css' : name;
+          }
         },
         external: [
           'obsidian',

@@ -34,7 +34,7 @@ export function createStdio<T = Message>() {
   let dropped = 0;
   let subscribers: ((m: T[]) =>  void)[] = [];
   let stdinData = '';
-  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  let flushTimer: number | null = null;
   let dirty = false;
 
   // A fresh array every time: subscribers (and Solid's <For>) only re-render
@@ -48,7 +48,7 @@ export function createStdio<T = Message>() {
   const notify = () => {
     dirty = false;
     if (flushTimer !== null) {
-      clearTimeout(flushTimer);
+      window.clearTimeout(flushTimer);
       flushTimer = null;
     }
     const snap = snapshot();
@@ -60,7 +60,7 @@ export function createStdio<T = Message>() {
   const scheduleFlush = () => {
     dirty = true;
     if (flushTimer !== null) return;
-    flushTimer = setTimeout(() => {
+    flushTimer = window.setTimeout(() => {
       flushTimer = null;
       if (dirty) notify();
     }, FLUSH_MS);
@@ -111,7 +111,10 @@ export function createStdio<T = Message>() {
     append(data.join(',') as unknown as T);
   };
 
-  const viewEl = activeDocument.createElement('div');
+  // `createDiv()` (Obsidian's helper) rather than `createElement('div')`: same
+  // detached element, but it is the API the community review asks for. It must
+  // stay detached — this is the target `matplotlib` renders into.
+  const viewEl = createDiv();
   const clear = () => {
     set([]);
     viewEl.empty();

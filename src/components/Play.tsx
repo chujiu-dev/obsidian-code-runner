@@ -311,7 +311,7 @@ export default (props: {
       setWatch({ elapsedMs: 0, quietMs: 0, waitingMs: 0 });
       return;
     }
-    const timer = setInterval(() => {
+    const timer = window.setInterval(() => {
       const now = Date.now();
       // Matplotlib paints straight into viewEl and never goes through the
       // subscriber above, so a plotting program would otherwise look silent.
@@ -326,7 +326,7 @@ export default (props: {
         waitingMs: queuedSince ? now - queuedSince : 0,
       });
     }, 1000);
-    onCleanup(() => clearInterval(timer));
+    onCleanup(() => window.clearInterval(timer));
   });
 
   const hint = createMemo(() => runHint({
@@ -410,7 +410,6 @@ export default (props: {
           {/* Sequential (bounded): labeled multi-field form */}
           <Show when={!hasSAB && isPython() && !isInteractive()}>
             <div class="stdin-fields">
-              {/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment -- SolidJS For callback types are not resolved by strict linting */}
               <For each={allPrompts()}>
                 {(prompt, i) => (
                   <div class="stdin-field">
@@ -431,7 +430,6 @@ export default (props: {
                   </div>
                 )}
               </For>
-              {/* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment -- re-enable rules after SolidJS For callback block */}
             </div>
             <div class="stdin-form-footer">
               <span class="code-interactive-stdin-close" onClick={closeInput} title={t('ui.closeInput')}>
@@ -475,7 +473,6 @@ export default (props: {
           {/* Input history */}
           <Show when={stdinHistory().length > 0}>
             <div class="code-interactive-stdin-area">
-              {/* eslint-disable @typescript-eslint/no-unsafe-member-access -- SolidJS For callback item types are not resolved by strict linting */}
               <For each={stdinHistory()}>
                 {(item) => (
                   <div class="code-interactive-stdin-history">
@@ -485,7 +482,6 @@ export default (props: {
                   </div>
                 )}
               </For>
-              {/* eslint-enable @typescript-eslint/no-unsafe-member-access -- re-enable rule after SolidJS For callback block */}
             </div>
           </Show>
 

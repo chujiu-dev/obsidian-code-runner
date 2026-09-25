@@ -53,6 +53,50 @@ checks for exactly that:
 - `typings/*.d.ts` patches Obsidian's own types (making `App.plugins`, `DataAdapter.getBasePath`
   etc. required). Obsidian's shipped `.d.ts` then fails its own interfaces — that is what
   `skipLibCheck: true` in `tsconfig.json` is for. The patches still apply to our code.
+- `eslint-plugin-no-unsanitized` is a devDependency **on purpose**, and `eslint.config.mjs`
+  runs it at error level. It is the rule that rejected the 1.4.0 submission; having it here
+  means `npm run lint` catches that class of problem before a human reviewer does, and it is
+  also what lets the two `no-unsanitized/method` suppressions below resolve to a real rule
+  instead of "unknown rule".
+
+### The 2026-09 review pass (shipped in 1.4.1)
+
+The 1.4.0 submission came back with **2 errors and ~15 warnings**. Both errors were
+`no-unsanitized/method` on a computed `import()`. What changed, and what was left alone on
+purpose:
+
+| Finding | What was done |
+|---|---|
+| `import()` of a computed URL — `net.ts` (`importLibrary`) and `languages/python.ts` (Pyodide) | **Kept, with a reasoned `eslint-disable-next-line`.** One URL is a pinned library constant, the other is the user's own Python CDN setting; neither can be a literal and neither can be bundled. This is the only place a suppression is the answer. |
+| `typings/electron.d.ts` — ~16k lines, and nearly every `any` in the report | **Deleted.** Nothing in `src/` imported Electron. It came with the template and its only effect was reviewer noise. |
+| `typings/window.d.ts` | **Deleted.** Its `[p: PropertyKey]: any` index signature existed only so `window.hmr` typechecked; `src/hmr.ts` declares `Window.hmr` itself now. |
+| `console.log` in `python.ts`, `ts.ts`, `wy.ts`, `hmr.ts` | `console.debug`, or deleted. `debug` is on the review's allow-list and stays hidden until DevTools is switched to Verbose — the right level for "which of the two Python runtimes is in use". The `wy.ts` ones printed the compiled JS and were pure noise. |
+| Bare `setTimeout` / `setInterval` / `clearTimeout` / `clearInterval` | All `window.`-qualified, which is what the review asks for (a run must keep working from a popout window). Handles are typed `number | null`: `window.setTimeout` returns a number, while the bare name resolves to Node's `Timeout` through `@types/node`. |
+| `document.createElement` in `store.ts`, `util.ts` | `createDiv()` / `createEl()`. `sanitizeNode` builds its whitelisted tags with `createEl(tag as keyof HTMLElementTagNameMap)` — the cast is the narrowing the whitelist above it has already proved. **Not** `activeWindow.createEl()`: Obsidian's typings put these helpers on `Node` and on the global, not on `Window`. |
+| `Term.tsx` built a style string by concatenation | `style={s.css}`. ansicolor's `css` already carries the colour, and the old code appended `color;[object Object]`, which the browser threw away — an invisible bug, not a styling choice. |
+| `if (e instanceof Error) … else String(e)` scattered around | `errorText(e)` in `util.ts`, so a Pyodide error that crossed the Worker boundary (a plain object) prints its fields instead of `[object Object]`. |
+| `getLanguage()` in `i18n/index.ts` (an API added in 1.8.7) | Guarded with `requireApiVersion('1.8.7') ? getLanguage() : undefined`. The guard is what the review's `no-unsupported-api` looks for; older apps keep the `en` default. |
+| `vite.config.ts`: destructured `path` methods, deprecated `asset.name` | `path.dirname(...)` etc. called on the object; `assetName()` reads `name` first and falls back to `names` — vite calls `assetFileNames` itself with a hand-built `{ type, name, … }` that has **no** `names`, so the "modern" property crashes the build. |
+
+Left in place, **with the reason** — these are warnings, not errors, and fixing them means
+raising what the plugin supports:
+
+- `localStorage` in `Play.tsx` (4 warnings). `App.loadLocalStorage` / `saveLocalStorage` are
+  `@since 1.8.7` (checked in `node_modules/obsidian/obsidian.d.ts`) while `minAppVersion` is
+  `0.12.0`. Raising the floor is a support decision, not a lint fix.
+- `PluginSettingTab` without `getSettingDefinitions()` — the declarative settings API is
+  1.13.0+, same reasoning. Settings search will not find this plugin's settings on 1.13+.
+- `vite.config.ts` imports Node built-ins and uses `process` — it is a build script that
+  never reaches `main.js`.
+
+**How to run the reviewer's own gate locally** (it is what the table above was produced
+with): install `eslint-plugin-obsidianmd` somewhere *outside* the repo and point a config at
+this project's `tsconfig.json`, then run eslint from the repo root — the plugin reads
+`./manifest.json` at import time, so the working directory has to be the repo. The
+`recommended` preset is type-checked; the repo's own `eslint.config.mjs` is not, so a
+problem like "unnecessary type assertion" only ever shows up under the reviewer's config.
+`dist/` is gitignored, and the reviewer's clone never has it — do not read a parse error on
+`dist/main.js` as a finding.
 
 ## Map of the code
 

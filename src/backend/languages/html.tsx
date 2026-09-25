@@ -3,34 +3,35 @@ import type { Stdio } from '..';
 import { render } from 'solid-js/web';
 
 export default async function (code: string, stdio: Stdio): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- SolidJS render() type is compatible; linter doesn't track JSX generics
   render(() => <HtmlViewer code={code}/>, stdio.viewEl);
 }
 
 
 const HtmlViewer = (props: { code: string }) => {
-  // eslint-disable-next-line prefer-const -- SolidJS ref callbacks reassign these variables, let is required
+  // Assigned by the ref callbacks below. Written as callbacks rather than as
+  // `ref={host}` because the shorthand assigns from the compiled output, which
+  // no reader — or linter — can see, and an invisible assignment reads exactly
+  // like a variable that should have been `const`.
   let host: HTMLDivElement | undefined = undefined;
-  // eslint-disable-next-line prefer-const -- SolidJS ref callbacks reassign these variables, let is required
   let el: HTMLDivElement | undefined = undefined;
 
   let shadow: ShadowRoot | undefined = undefined;
 
   onMount(() => {
     if (!host || !el) return;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- ShadowRoot API is inherently untyped in Obsidian's DOM environment
+    // Closed shadow root: the code under view runs in the viewer's document,
+    // and a shadow boundary keeps its styles and ids from reaching the app.
     shadow = host.attachShadow({ mode: 'closed' });
     shadow.appendChild(el);
   });
 
   onCleanup(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- DOM remove() method is typed as any in Obsidian's type environment
     host?.remove();
   });
 
   return <>
-    <div ref={host} class="html-viewer" >
-      <div ref={el} innerHTML={props.code}></div>
+    <div ref={(node) => { host = node; }} class="html-viewer" >
+      <div ref={(node) => { el = node; }} innerHTML={props.code}></div>
     </div>
   </>;
 };

@@ -68,7 +68,7 @@ for (const [name, engine] of Object.entries(canonical)) {
 // Aliases are derived rather than hand-written, and point at the *wrapped*
 // entry, so `R` and `r` cannot drift apart.
 for (const [alias, target] of Object.entries(LANGUAGE_ALIASES)) {
-  languageRegistry[alias] = languageRegistry[target] as Backend;
+  languageRegistry[alias] = languageRegistry[target];
 }
 
 export default languageRegistry;

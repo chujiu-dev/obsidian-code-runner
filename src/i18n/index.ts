@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { getLanguage } from 'obsidian';
+import { getLanguage, requireApiVersion } from 'obsidian';
 import type { LanguageSetting, ResolvedLanguage, LocaleMap } from './types';
 import en from './en';
 import zh from './zh';
@@ -8,10 +8,18 @@ const locales: Record<ResolvedLanguage, LocaleMap> = { en, zh };
 
 const [languageSetting, setLanguageSettingRaw] = createSignal<LanguageSetting>('auto');
 
-/** Resolve 'auto' to the actually detected Obsidian language. */
+/**
+ * Resolve 'auto' to the actually detected Obsidian language.
+ *
+ * `getLanguage` arrived in Obsidian 1.8.7 and the manifest still supports
+ * 0.12.0, so the call is behind `requireApiVersion` — the guard the community
+ * review asks for, and the one that keeps older apps on the `en` default
+ * instead of on a missing function. The `try` stays as the second line of
+ * defence: a locale that is not a string is not worth failing a load over.
+ */
 function detectObsidianLanguage(): ResolvedLanguage {
   try {
-    const lang = getLanguage();
+    const lang = requireApiVersion('1.8.7') ? getLanguage() : undefined;
     if (lang && (lang === 'zh' || lang.startsWith('zh-'))) return 'zh';
   } catch {
     // getLanguage() may not be available in older Obsidian versions

@@ -17,7 +17,12 @@ export default (props: { lines: string[] }) => {
               stdin) open with ⚠️; set them apart from the program's output. */}
           <li class={line?.startsWith('⚠️') ? 'code-output-notice' : undefined}>
             <For each={parse(line ?? '').spans}>
-              {(s) => <span style={s.css + (s.color ? `color;${s.color}` : '')} >{s.text}</span>}
+              {/* `span.css` is ansicolor's own declaration list and already
+                  carries the foreground colour (see its `css` builder), so
+                  appending `color:${span.color}` — an object — only ever added
+                  `color;[object Object]` to the style, which the browser threw
+                  away. */}
+              {(s) => <span style={s.css}>{s.text}</span>}
             </For>
           </li>
         </Show>}
