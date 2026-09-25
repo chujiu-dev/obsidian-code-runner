@@ -1,5 +1,5 @@
-import { MarkdownRenderChild, PluginSettingTab, type Plugin } from 'obsidian';
-import { Component as SolidComponent, splitProps } from 'solid-js';
+import { PluginSettingTab, type Plugin } from 'obsidian';
+import { Component as SolidComponent } from 'solid-js';
 import { render } from 'solid-js/web';
 
 
@@ -16,20 +16,5 @@ export class PluginSolidSettingTab<C extends SolidComponent, P extends Plugin> e
   }
   hide() {
     this.cleanup?.();
-  }
-}
-
-/**
- * MarkdownRenderSolidChild
- * 
- * auto tree-shaking
- */
-export class MarkdownRenderSolidChild<T extends SolidComponent> extends MarkdownRenderChild {
-  constructor(private readonly component: T, private readonly props: { containerEl: HTMLElement } & Parameters<T>[0]) {
-    super(props.containerEl);
-  }
-  onload(): void {
-    const [local, other] = splitProps(this.props, ['containerEl']);
-    this.onunload = render(() => this.component(other), local.containerEl);
   }
 }

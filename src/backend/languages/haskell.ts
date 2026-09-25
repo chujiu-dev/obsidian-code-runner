@@ -1,7 +1,6 @@
-import { requestUrl } from 'obsidian';
-
 import type { Stdio } from '..';
 import { ClientAgent } from '../../version';
+import { requestWithTimeout } from '../net';
 
 const headers = {
   'User-Agent': ClientAgent,
@@ -13,7 +12,7 @@ const headers = {
 let ghcVersion: string | undefined;
 
 const getGhcVersion = async (): Promise<string> => {
-  const res = await requestUrl({
+  const res = await requestWithTimeout({
     url: 'https://play.haskell.org/versions',
     headers,
   });
@@ -24,7 +23,7 @@ const getGhcVersion = async (): Promise<string> => {
 };
 
 const run = async (code: string) => {
-  const res = await requestUrl({
+  const res = await requestWithTimeout({
     url: 'https://play.haskell.org/submit',
     headers,
     body: JSON.stringify({

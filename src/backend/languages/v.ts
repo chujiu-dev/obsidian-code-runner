@@ -1,10 +1,10 @@
-import { requestUrl } from 'obsidian';
 import type { Stdio } from '..';
+import { requestWithTimeout } from '../net';
 
 const url = 'https://play.vosca.dev/run';
 
 export default async function (code: string, output: Stdio): Promise<void> {
-  const res = await requestUrl({
+  const res = await requestWithTimeout({
     url,
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

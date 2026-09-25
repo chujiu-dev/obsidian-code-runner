@@ -1,6 +1,6 @@
-import { requestUrl } from 'obsidian';
 import type { Stdio } from '..';
 import { ClientAgent } from '../../version';
+import { requestWithTimeout } from '../net';
 
 const url = 'https://api.kotlinlang.org//api/1.7.10/compiler/run';
 
@@ -27,7 +27,7 @@ export default async function(code: string, stdio: Stdio): Promise<void> {
       }
     ]
   };
-  const res = await requestUrl({
+  const res = await requestWithTimeout({
     url,
     method: 'POST',
     headers: {

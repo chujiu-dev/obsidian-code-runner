@@ -2,14 +2,17 @@ import type { LocaleMap } from './types';
 
 const zh: LocaleMap = {
   // -- stdin / input area --
-  'stdin.unsupported': '本程序需要标准输入，目前仅支持 Python。',
   'stdin.interactive.hint': '此程序使用交互式输入，每行对应一次 input() 调用。',
+  'stdin.once.hint': '输入会在运行前一次性交给程序 —— 这些语言无法在运行中追加输入。每行一个值。',
   'stdin.interactive.placeholder': '每行 = 一次 input() 调用。\n示例 — 为读取姓名、年龄、城市的程序预填 3 行：\nAlice\n25\n北京',
   'stdin.firstPromptPlaceholder': '输入第一个提示符的值…',
   'stdin.label.input': '输入 #{n}',
   'stdin.label.dynamic': '输入 #{n}（动态）',
-  'stdin.insufficient.worker': '⚠️ 预输入数据不完整！已消耗所有 {lines} 行预填数据。\n程序继续请求输入（已连续10次空输入）。\n请在输入框中补充更多行数据后重新运行。',
+  'stdin.truncated': '⚠️ 输入内容过长，已截断为 {n} 字节。',
   'stdin.insufficient.body': '预输入数据不完整！{label}缺少预填数据。\n已消耗 {consumed} 行预填数据，程序继续请求输入（已连续10次空输入）。\n请在输入框中补充更多行数据后重新运行。',
+
+  // -- output area --
+  'output.truncated': '⚠️ 输出太多，前面的 {n} 行已省略，只显示最后 {max} 行。',
 
   // -- UI chrome --
   'ui.run': '运行（回车）',
@@ -21,6 +24,12 @@ const zh: LocaleMap = {
   'ui.clearOutput': '清除输出',
   'ui.toggleInput': '切换输入区域',
   'ui.terminate': '立即终止执行',
+  'ui.queued': '等待其他代码块运行结束（前面还有 {n} 个）…',
+  'ui.queuedLong': '已经等了 {n} 秒还没轮到。前面那个代码块可能卡住了 —— 可以点它的「{stop}」按钮中止它。',
+  'ui.runningLong': '已经运行 {n} 秒了，该程序运行时间较长，需要中止程序请点「{stop}」。',
+  'ui.runningLongLoop': '已经运行 {n} 秒了，可能遇到了死循环，需要中止程序请点「{stop}」。',
+  'ui.runningLongNoStop': '已经运行 {n} 秒了，该程序运行时间较长。这类语言不能中途停止，如果一直没结果，请检查网络或稍后再试。',
+  'ui.runningLongLoopNoStop': '已经运行 {n} 秒了，可能遇到了死循环（这类语言不能中途停止，只能等它结束或关掉这个代码块）。',
 
   // -- settings tab --
   'settings.language.name': '插件语言',
@@ -31,7 +40,6 @@ const zh: LocaleMap = {
   'settings.experimental': '实验',
   'settings.pythonCdn.name': 'Pyodide CDN 地址',
   'settings.pythonCdn.desc': '加载 Pyodide（Python WebAssembly 运行时）的基础地址。如需使用镜像或自建实例，可在此修改。',
-  'settings.comingSoon.heading': '即将推出',
   'settings.ioPrompts.name': 'I/O 上下文提示',
   'settings.ioPrompts.desc': '在输入和输出区域显示上下文提示。逐行输入时显示当前输入提示，移动端多行输入时显示全部待输入提示，以及输出行指引。',
   'settings.autoComplete.name': '代码自动补全',
@@ -47,6 +55,18 @@ const zh: LocaleMap = {
   'pyodide.setupError': '[设置错误] {message}',
   'pyodide.injectError': '[设置错误] 注入 input 替换失败',
   'pyodide.genericError': '[Pyodide 错误] {message}',
+  'python.aborted': '已停止。',
+  'python.abortedReload': '已停止。程序没有响应中断信号，已重启 Python 运行时 —— 下次运行会重新加载。',
+  'python.loading': '正在加载 Python 运行时（首次使用需下载约 10 MB，请稍候）…',
+  'python.loadTimeout': 'Python 运行时 60 秒内没有加载完成。请检查网络，或在插件设置里换一个 Pyodide CDN 地址后重试。',
+
+  // -- network failures (remote languages + CDN-loaded runtimes) --
+  'net.unknownHost': '远端服务',
+  'net.offline': '当前没有网络连接，无法访问 {host}。这类语言需要联网才能运行，请连上网后重试。',
+  'net.failed': '无法连接到 {host}，请检查网络或代理设置后重试。',
+  'net.timeout': '连接 {host} 超过 {n} 秒没有响应，请检查网络后重试。',
+  'net.http': '{host} 返回了错误（HTTP {status}），请稍后重试。',
+  'net.badLibrary': '从 {host} 下载的 {lib} 程序库已经加载成功，但它没有提供本插件需要的接口——CDN 上的这个文件可能变了。请稍后重试。',
 
   // -- sololearn diagnostics --
   'diag.defaultLabel': '诊断信息',
@@ -55,6 +75,7 @@ const zh: LocaleMap = {
 
   // -- unsupported language (main.tsx API) --
   'api.unsupportedLang': '不支持的语言：{lang}。支持的语言：{list}',
+  'api.stdinUnavailable': '通过 API 运行时不支持交互式输入，程序已停止。',
 };
 
 export default zh;

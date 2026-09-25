@@ -19,7 +19,13 @@
       "ES7",
       "ES2021"
     ],
-    "typeRoots": [ "typings", "node_modules/@types", "solid-styled-jsx"]
+    "typeRoots": [ "typings", "node_modules/@types", "solid-styled-jsx"],
+    // typings/obsidian.d.ts deliberately patches Obsidian's own types (it makes
+    // members like App.plugins and DataAdapter.getBasePath required), which
+    // makes Obsidian's shipped .d.ts files fail to satisfy their own interfaces.
+    // Those patches still apply to our code — this only stops the library files
+    // themselves from being reported.
+    "skipLibCheck": true
   },
   "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "typings/**/*.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]

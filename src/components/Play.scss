@@ -30,6 +30,15 @@
     align-items: center;
   }
 
+  // "N runs ahead": shown in a block that is waiting its turn behind another
+  // block on the same (shared) runtime.
+  .code-queue-hint {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    text-align: center;
+    white-space: normal;
+  }
+
   // Gray thick separator line between code block and input/output areas
   hr.code-seprator {
     margin-top: 0.75em;
@@ -186,6 +195,9 @@
       justify-content: space-between;
       margin-top: var(--size-4-2);
     }
+
+    // "This looks like an infinite loop" — a note, not an error: the code is
+    // often exactly what the user meant to write.
   }
 
   .code-output {
@@ -202,6 +214,13 @@
       &>li {
         white-space: pre-line;
         margin: 0;
+
+        // A note from the plugin (truncated output), not the program's own
+        // output — dimmed so it does not read as something the program printed.
+        &.code-output-notice {
+          color: var(--text-muted);
+          font-style: italic;
+        }
       }
     }
   }

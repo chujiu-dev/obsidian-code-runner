@@ -1,14 +1,21 @@
 
 import { For, Show } from 'solid-js';
 import { parse } from 'ansicolor';
+import { sanitizeHtml } from '../backend/util';
 
 const htmlRegex = /^\s*<([a-zA-Z_][a-zA-Z0-9-_]*)(\s+[^>]+)*>.*<\/\1>\s*$/
 export default (props: { lines: string[] }) => {
   return <>
     <ul>
       <For each={props.lines}>
-        {(line) => <Show when={!htmlRegex.test(line)} fallback={<li innerHTML={line}></li>}>
-          <li>
+        {/* Markup lines are built from a whitelist rather than pasted in as
+            innerHTML: the same stream carries output from remote compilers. */}
+        {(line) => <Show when={!htmlRegex.test(line)} fallback={
+          <li ref={(el) => { el.replaceChildren(...sanitizeHtml(line)); }}></li>
+        }>
+          {/* The plugin's own notes to the reader (truncated output, truncated
+              stdin) open with ⚠️; set them apart from the program's output. */}
+          <li class={line?.startsWith('⚠️') ? 'code-output-notice' : undefined}>
             <For each={parse(line ?? '').spans}>
               {(s) => <span style={s.css + (s.color ? `color;${s.color}` : '')} >{s.text}</span>}
             </For>

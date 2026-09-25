@@ -1,5 +1,5 @@
-import { requestUrl } from 'obsidian';
 import type { Stdio } from '..';
+import { requestWithTimeout } from '../net';
 
 const url = 'https://play.rust-lang.org/execute';
 
@@ -14,7 +14,7 @@ export default async function(code: string, stdio: Stdio): Promise<void> {
     'backtrace': false
   };
 
-  const res = await requestUrl({
+  const res = await requestWithTimeout({
     url,
     method: 'POST',
     headers: {

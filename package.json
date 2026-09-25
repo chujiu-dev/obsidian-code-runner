@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite build -w -m development",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "deploy": "node scripts/deploy.mjs",
     "version-bump": "node version.mjs bump",
     "version": "node version.mjs",
     "preview": "vite preview",

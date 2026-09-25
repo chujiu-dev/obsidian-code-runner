@@ -1,4 +1,5 @@
 import type { Stdio } from '..';
+import { escapeHtml } from '../util';
 
 interface WrappedConsole {
   log: (...data: string[]) => void;
@@ -8,10 +9,15 @@ interface WrappedConsole {
   error: (...data: unknown[]) => void;
 }
 
-const wrapConsole = ({ update }: Stdio): WrappedConsole => {
+const wrapConsole = ({ stdout }: Stdio): WrappedConsole => {
   const prettyWrite = (name: string, data: string[]): void => {
-    const outputStr = `<div class="log-${name}">${data.join(',')}</div>`;
-    update(n => [...n, outputStr]);
+    // Text is escaped because Term renders these lines with innerHTML.
+    const outputStr = `<div class="log-${name}">${escapeHtml(data.join(','))}</div>`;
+    // Through `stdout`, not `update`: the latter hands subscribers a fresh array
+    // per call, which costs O(lines so far) — and this backend runs on the UI
+    // thread, so `while (true) console.log(i)` froze Obsidian outright. `stdout`
+    // is batched and capped like every other backend's output.
+    stdout(outputStr);
   };
 
   const log = (...data: string[]) => prettyWrite('info', data);

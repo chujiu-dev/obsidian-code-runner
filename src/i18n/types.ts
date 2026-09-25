@@ -4,14 +4,17 @@ export type ResolvedLanguage = 'en' | 'zh';
 /** Structured key space for all user-facing strings. */
 export interface LocaleMap {
   // -- stdin / input area --
-  'stdin.unsupported': string;
   'stdin.interactive.hint': string;
+  'stdin.once.hint': string;
   'stdin.interactive.placeholder': string;
   'stdin.firstPromptPlaceholder': string;
   'stdin.label.input': string;
   'stdin.label.dynamic': string;
-  'stdin.insufficient.worker': string;
+  'stdin.truncated': string;
   'stdin.insufficient.body': string;
+
+  // -- output area --
+  'output.truncated': string;
 
   // -- UI chrome --
   'ui.run': string;
@@ -23,6 +26,12 @@ export interface LocaleMap {
   'ui.clearOutput': string;
   'ui.toggleInput': string;
   'ui.terminate': string;
+  'ui.queued': string;
+  'ui.queuedLong': string;
+  'ui.runningLong': string;
+  'ui.runningLongLoop': string;
+  'ui.runningLongNoStop': string;
+  'ui.runningLongLoopNoStop': string;
 
   // -- settings tab --
   'settings.language.name': string;
@@ -33,7 +42,6 @@ export interface LocaleMap {
   'settings.experimental': string;
   'settings.pythonCdn.name': string;
   'settings.pythonCdn.desc': string;
-  'settings.comingSoon.heading': string;
   'settings.ioPrompts.name': string;
   'settings.ioPrompts.desc': string;
   'settings.autoComplete.name': string;
@@ -49,6 +57,18 @@ export interface LocaleMap {
   'pyodide.setupError': string;
   'pyodide.injectError': string;
   'pyodide.genericError': string;
+  'python.aborted': string;
+  'python.abortedReload': string;
+  'python.loading': string;
+  'python.loadTimeout': string;
+
+  // -- network failures (remote languages + CDN-loaded runtimes) --
+  'net.unknownHost': string;
+  'net.offline': string;
+  'net.failed': string;
+  'net.timeout': string;
+  'net.http': string;
+  'net.badLibrary': string;
 
   // -- sololearn diagnostics --
   'diag.defaultLabel': string;
@@ -57,4 +77,5 @@ export interface LocaleMap {
 
   // -- unsupported language (main.tsx API) --
   'api.unsupportedLang': string;
+  'api.stdinUnavailable': string;
 }

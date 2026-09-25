@@ -40,10 +40,20 @@ export default (props: {
   settings: PluginSetting,
   settingsUpdate: SetStoreFunction<PluginSetting>,
   save: () => void,
+  /** Applies a new Python CDN to the live runtime, without a plugin reload. */
+  onCdnChange?: (cdn: string) => void,
 }) => {
 
   // Migrate legacy 'zh' setting → 'auto' (manual Chinese option removed; auto-detection still covers zh)
   const langValue = () => props.settings.language === 'zh' ? 'auto' : props.settings.language;
+
+  const applyCdn = (value: string) => {
+    props.settingsUpdate('python', 'cdn', value);
+    props.save();
+    // Discards the loaded runtime, so the next run fetches Pyodide from the new
+    // base URL instead of silently keeping the old one.
+    props.onCdnChange?.(value);
+  };
 
   return <>
     {/* ═══ General ═══ */}
@@ -85,13 +95,11 @@ export default (props: {
           spellcheck={false}
           value={props.settings.python.cdn}
           onBlur={(e) => {
-            props.settingsUpdate('python', 'cdn', e.target.value);
-            props.save();
+            applyCdn(e.target.value);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              props.settingsUpdate('python', 'cdn', (e.target as HTMLInputElement).value);
-              props.save();
+              applyCdn((e.target as HTMLInputElement).value);
             }
           }}
         />

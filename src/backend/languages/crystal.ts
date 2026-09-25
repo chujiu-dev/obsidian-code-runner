@@ -1,5 +1,5 @@
-import { requestUrl } from 'obsidian';
 import type { Stdio } from '..';
+import { requestWithTimeout } from '../net';
 
 const url = 'https://play.crystal-lang.org/run_requests';
 
@@ -12,7 +12,7 @@ export default  async function(code: string, stdio: Stdio): Promise<void> {
     }
   };
 
-  const res = await requestUrl({
+  const res = await requestWithTimeout({
     url,
     method: 'POST',
     headers: {

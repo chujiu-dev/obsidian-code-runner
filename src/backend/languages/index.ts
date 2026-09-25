@@ -15,10 +15,13 @@ import wy from './wy';
 import crystal from './crystal';
 import r from './r';
 import html from './html';
+import { LANGUAGE_ALIASES } from './aliases';
+import { withFailureReport } from '../net';
 import type { Backend } from '..';
 
-
-const languageRegistry: Record<string, ((props?: unknown) => Backend) | Backend> = {
+// Every entry is a ready-to-call Backend (python's is produced by its own
+// factory, the rest are plain async functions).
+const canonical: Record<string, Backend> = {
   kotlin,
   rust,
   java,
@@ -26,24 +29,41 @@ const languageRegistry: Record<string, ((props?: unknown) => Backend) | Backend>
   cpp,
   csharp,
   js,
-  javascript: js,
   html,
   hs,
-  haskell: hs,
   ts,
-  typescript: ts,
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- python IIFE return type (Backend) is compatible but the intermediate function wrapper confuses strict lint
   python,
   go,
   swift,
   v,
-  vlang: v,
   wy,
-  wenyan: wy,
   crystal,
-  cr: crystal,
   r,
-  R: r,
 };
+
+/**
+ * Languages whose run needs the network: the twelve playground APIs, plus the
+ * two (TypeScript, Wenyan) that pull their library off a CDN.
+ *
+ * Only these get `net.ts`'s failure reporting — Python, JavaScript and HTML run
+ * entirely locally, where a network failure is not a thing that can happen.
+ * A rejection used to reach the user as *nothing at all*: no message, just a
+ * spinner that stopped.
+ */
+const NETWORK_LANGS = new Set([
+  'kotlin', 'rust', 'java', 'c', 'cpp', 'csharp', 'hs', 'go', 'swift', 'v',
+  'wy', 'crystal', 'r', 'ts',
+]);
+
+const languageRegistry: Record<string, Backend> = {};
+for (const [name, engine] of Object.entries(canonical)) {
+  languageRegistry[name] = NETWORK_LANGS.has(name) ? withFailureReport(engine) : engine;
+}
+
+// Aliases are derived rather than hand-written, and point at the *wrapped*
+// entry, so `R` and `r` cannot drift apart.
+for (const [alias, target] of Object.entries(LANGUAGE_ALIASES)) {
+  languageRegistry[alias] = languageRegistry[target] as Backend;
+}
 
 export default languageRegistry;

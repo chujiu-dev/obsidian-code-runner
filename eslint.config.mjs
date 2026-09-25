@@ -37,5 +37,15 @@ export default tseslint.config(
     rules: {
       'no-undef': 'off'
     }
+  },
+  {
+    // Helper scripts run under Node, not in the page.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly'
+      }
+    }
   }
 );

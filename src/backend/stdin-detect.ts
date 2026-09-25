@@ -3,6 +3,7 @@
  */
 
 import { t } from '../i18n';
+import { canonicalLang } from './languages/aliases';
 
 /** Per-language regex patterns that indicate stdin usage. */
 const STDIN_PATTERNS: Record<string, RegExp[]> = {
@@ -92,7 +93,7 @@ const STDIN_PATTERNS: Record<string, RegExp[]> = {
  * ```
  */
 export function needsStdin(lang: string, code: string): boolean {
-  const patterns = STDIN_PATTERNS[lang];
+  const patterns = STDIN_PATTERNS[canonicalLang(lang)];
   if (!patterns || patterns.length === 0) {
     return false;
   }
@@ -118,7 +119,7 @@ export const STDIN_SUPPORTED_LANGS = new Set([
  * Check whether a language supports stdin at all.
  */
 export function supportsStdin(lang: string): boolean {
-  return STDIN_SUPPORTED_LANGS.has(lang);
+  return STDIN_SUPPORTED_LANGS.has(canonicalLang(lang));
 }
 
 // ── Prompt extraction ──
@@ -144,7 +145,7 @@ export interface InputPrompt {
  * @returns Array of parsed input prompts in source order.
  */
 export function extractInputPrompts(lang: string, code: string): InputPrompt[] {
-  if (lang !== 'python') return [];
+  if (canonicalLang(lang) !== 'python') return [];
 
   const results: InputPrompt[] = [];
   let counter = 0;
@@ -209,7 +210,7 @@ export function extractInputPrompts(lang: string, code: string): InputPrompt[] {
  * ```
  */
 export function isInteractiveStdin(lang: string, code: string): boolean {
-  if (lang !== 'python') return false;
+  if (canonicalLang(lang) !== 'python') return false;
 
   // Strip comments to avoid false positives
   const clean = code.replace(/#.*$/gm, '');

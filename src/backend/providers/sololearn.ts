@@ -1,6 +1,7 @@
-import { requestUrl } from 'obsidian';
 import { ClientAgent } from '../../version';
+import { requestWithTimeout } from '../net';
 import { t } from '../../i18n';
+import { escapeHtml } from '../util';
 
 const url = 'https://api2.sololearn.com/v2/codeplayground/v2/compile';
 
@@ -27,7 +28,8 @@ export function formatWarnings(text: string): string {
   if (errCount) parts.push(t('diag.errorCount', { n: errCount, s: errCount > 1 ? 's' : '' }));
   if (warnCount) parts.push(t('diag.warningCount', { n: warnCount, s: warnCount > 1 ? 's' : '' }));
   const label = parts.join(', ') || t('diag.defaultLabel');
-  const body = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '&#10;');
+  // Escaped (and newlines encoded) because Term renders this line with innerHTML.
+  const body = escapeHtml(text).replace(/\n/g, '&#10;');
   return `<details class="code-runner-warnings"><summary>⚠ ${label}</summary><pre>${body}</pre></details>`;
 }
 
@@ -40,7 +42,7 @@ export const run = async (code: string, lang: 'cpp' | 'go' | 'c' | 'java' | 'cs'
     'Content-Type': 'application/json',
   };
 
-  const res = await requestUrl({
+  const res = await requestWithTimeout({
     url,
     headers: header,
     body: JSON.stringify({
