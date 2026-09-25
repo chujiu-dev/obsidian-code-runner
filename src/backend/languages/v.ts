@@ -1,7 +1,11 @@
 import type { Stdio } from '..';
 import { requestWithTimeout } from '../net';
 
-const url = 'https://play.vosca.dev/run';
+// The playground moved off `play.vosca.dev`, which stopped resolving (NXDOMAIN
+// on 2026-09-25) without any announcement. The current host answers on the same
+// path with the same form body and the same `{ output, buildOutput, error }`,
+// so only the host name changed.
+const url = 'https://play.vlang.io/run';
 
 export default async function (code: string, output: Stdio): Promise<void> {
   const res = await requestWithTimeout({

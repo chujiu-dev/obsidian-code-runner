@@ -5,6 +5,7 @@ import { render } from 'solid-js/web';
 import { PluginSolidSettingTab } from './solidify';
 import backend, { createStdio } from './backend';
 import { setPythonCdn, disposePython } from './backend/languages/python';
+import { setSkeletonEnabled } from './backend/skeleton';
 import { LANGUAGE_ALIASES, canonicalLang, isRegisterableTag } from './backend/languages/aliases';
 import SettingTab from './components/SettingTab';
 import CodeBlock from './components/CodeBlock';
@@ -31,7 +32,14 @@ export interface CodeRunnerAPI {
   supportsStdin(lang: string): boolean;
   /** Analyze source code to detect stdin-reading function calls. */
   needsStdin(lang: string, code: string): boolean;
-  /** Execute code programmatically and return output lines. */
+  /**
+   * Execute code programmatically and return output lines.
+   *
+   * An incomplete snippet is completed first (see `backend/skeleton.ts`), and
+   * when that happens the *first* element is the completion notice as HTML
+   * markup rather than a line of program output. Callers that want only what
+   * the program printed should drop a leading element starting with `<details`.
+   */
   execute(lang: string, code: string, stdin?: string): Promise<string[]>;
 }
 
@@ -171,6 +179,9 @@ export default class CodeEmitterPlugin extends Plugin {
     this.settingsUpdate(merged);
     initI18n(merged.language);
     setPythonCdn(merged.python.cdn);
+    // Settings saved before the flag existed have no `autoSkeleton`, and
+    // `{...SETTING_DEFAULT}` has already supplied the default of true.
+    setSkeletonEnabled(merged.autoSkeleton !== false);
   }
   async saveSettings(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Obsidian's saveData accepts the SolidJS unwrapped store object

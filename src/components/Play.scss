@@ -296,9 +296,13 @@
     }
   }
 
-  // ── Compiler warnings (collapsed by default, grey) ──
-  .code-runner-warnings {
-    margin-top: 1em;
+  // ── Compiler warnings and the skeleton notice (collapsed, grey) ──
+  //
+  // The same look, but only the warnings carry a top margin: they sit under the
+  // program's own output, while the skeleton notice is the first line of it and
+  // a leading gap would read as a rendering bug.
+  .code-runner-warnings,
+  .code-runner-skeleton {
     color: var(--text-muted);
 
     summary {
@@ -323,6 +327,10 @@
       white-space: pre-wrap;
       word-break: break-all;
     }
+  }
+
+  .code-runner-warnings {
+    margin-top: 1em;
   }
 
   // Inline stop button row (flow positioning, below the input)

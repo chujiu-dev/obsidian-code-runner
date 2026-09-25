@@ -44,6 +44,8 @@ const en: LocaleMap = {
   'settings.ioPrompts.desc': 'Display contextual hints in input and output areas. Shows the current input prompt during line-by-line entry, all pending prompts on mobile multi-line input, and output line guidance.',
   'settings.autoComplete.name': 'Code auto-complete',
   'settings.autoComplete.desc': 'Provide intelligent code completion suggestions while typing in code blocks.',
+  'settings.autoSkeleton.name': 'Complete program skeleton',
+  'settings.autoSkeleton.desc': 'Before a block runs, wrap an incomplete snippet in the standard shape for its language — the missing entry point (such as main), plus any includes it uses but does not declare. A one-line notice appears above the output; expand it to see the code that actually ran.',
   'settings.additionalPlugins.heading': 'Additional Plugins',
   'settings.additionalPlugins.desc': 'More language backends and integrations are on the roadmap. Stay tuned.',
 
@@ -72,6 +74,9 @@ const en: LocaleMap = {
   'diag.defaultLabel': 'diagnostic',
   'diag.errorCount': '{n} error{s}',
   'diag.warningCount': '{n} warning{s}',
+
+  // -- automatic snippet completion --
+  'skeleton.notice': '⚠ Snippet completed: {added} (click to see the code that ran)',
 
   // -- unsupported language (main.tsx API) --
   'api.unsupportedLang': 'Unsupported language: {lang}. Supported: {list}',

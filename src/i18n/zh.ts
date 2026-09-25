@@ -44,6 +44,8 @@ const zh: LocaleMap = {
   'settings.ioPrompts.desc': '在输入和输出区域显示上下文提示。逐行输入时显示当前输入提示，移动端多行输入时显示全部待输入提示，以及输出行指引。',
   'settings.autoComplete.name': '代码自动补全',
   'settings.autoComplete.desc': '在代码块中输入时提供智能补全建议。',
+  'settings.autoSkeleton.name': '自动补全程序骨架',
+  'settings.autoSkeleton.desc': '运行代码块前，若片段缺少入口函数（如 main），自动套入该语言的标准框架，并补上它用到却没有写的 #include / import。输出区会先显示一行提示，展开可查看实际运行的完整代码。',
   'settings.additionalPlugins.heading': '附加插件',
   'settings.additionalPlugins.desc': '更多语言后端和集成正在规划中，敬请期待。',
 
@@ -72,6 +74,9 @@ const zh: LocaleMap = {
   'diag.defaultLabel': '诊断信息',
   'diag.errorCount': '{n} 个错误{s}',
   'diag.warningCount': '{n} 个警告{s}',
+
+  // -- 自动补全程序骨架 --
+  'skeleton.notice': '⚠ 已自动补全代码片段：{added}（点开可查看实际运行的代码）',
 
   // -- unsupported language (main.tsx API) --
   'api.unsupportedLang': '不支持的语言：{lang}。支持的语言：{list}',

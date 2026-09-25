@@ -21,6 +21,46 @@ Code Runner provides the most complete Python input experience of any Obsidian p
 
 `stdin`-capable remote languages (C, C++, Java, Go, C#, Swift, R) get a plain stdin textarea. The text is handed to the compiler service **with the compile request**, so these languages cannot prompt you mid-run the way Python can — fill in everything the program will read before starting it.
 
+### Incomplete Snippets
+
+A lecture note usually quotes a few lines, not a whole program:
+
+```c
+int n = 0x12345678;
+unsigned char *q = (unsigned char *)&n;
+for (int i = 0; i < 4; i++)
+    printf("%02x ", q[i]);
+```
+
+That has no `main` and no `<stdio.h>`, so a compiler can do nothing with it — but there is nothing
+ambiguous about what running it should mean. When a block is a fragment like this, the plugin wraps
+it in the standard shape for its language: the missing entry point, plus the includes the snippet
+actually uses and does not declare. The first line of the output says what was added; expanding it
+shows the exact code that ran, which is how a compiler diagnostic's line number can be mapped back
+to the note.
+
+| Language | What a fragment gets |
+|---|---|
+| C / C++ | `int main() { … return 0; }` and the headers the snippet's own calls need |
+| Java | `public class Program { public static void main(String[] args) { … } }` and the `import`s it needs |
+| Go | `package main`, the imports it uses, and a `func main() { … }` |
+| Kotlin / V / Rust | an entry point (`fun main()`, `fn main()`) — Rust needs nothing else, its prelude covers `println!` |
+| C# | the `using` lines, and — only if the snippet prints anything outside ASCII — one line setting the console encoding. The playground's stdout is not UTF-8, so `Console.WriteLine("中文")` comes back as `??` without it. A *whole* C# program that prints non-ASCII still shows `?`: the line would become the entry point and its own `Main` would never run |
+
+"The includes it needs" is meant literally. A snippet that only prints gets `<stdio.h>` and nothing
+else; one that carries its own `#include` keeps it (moved above the entry point, where a header
+belongs) and is not given a second copy; Go gets no import it does not use, because an unused
+import is an error there rather than a warning.
+
+Nothing is wrapped without evidence. Sent exactly as written are: a snippet that already declares
+an entry point; one that is *defining* a function, class or struct of its own (`int add(int a, int
+b) { … }` cannot be nested inside `main`, so wrapping it would trade a link error for a syntax
+error); an empty or comment-only block; and a Go snippet that declares a package other than `main`.
+Haskell is not covered at all: `main = do` is indentation-sensitive, so a fragment cannot be
+dropped into one without re-indenting the author's lines.
+
+Turn the whole thing off in Settings → General → **Complete program skeleton**.
+
 ### Multi-Language Support
 
 | Language | Backend | stdin |
@@ -56,7 +96,7 @@ breaks the rendering of every note in the vault.
 
 - **Output cache**: Results persist across note switches via localStorage; entries untouched for 30 days are pruned
 - **ANSI color support**: Terminal color codes are rendered in output
-- **Plugin API**: Other plugins can programmatically execute code via `app.plugins.plugins['code-runner'].api`
+- **Plugin API**: Other plugins can programmatically execute code via `app.plugins.plugins['code-runner'].api`. Note that for the languages in [Incomplete Snippets](#incomplete-snippets) the returned array's *first* element is the completion notice as HTML markup, present only when something was added — callers that want the program's own output should skip a leading line starting with `<details`
 
 ### Runtime Limits
 

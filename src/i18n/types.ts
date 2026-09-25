@@ -46,6 +46,8 @@ export interface LocaleMap {
   'settings.ioPrompts.desc': string;
   'settings.autoComplete.name': string;
   'settings.autoComplete.desc': string;
+  'settings.autoSkeleton.name': string;
+  'settings.autoSkeleton.desc': string;
   'settings.additionalPlugins.heading': string;
   'settings.additionalPlugins.desc': string;
 
@@ -74,6 +76,9 @@ export interface LocaleMap {
   'diag.defaultLabel': string;
   'diag.errorCount': string;
   'diag.warningCount': string;
+
+  // -- automatic snippet completion --
+  'skeleton.notice': string;
 
   // -- unsupported language (main.tsx API) --
   'api.unsupportedLang': string;

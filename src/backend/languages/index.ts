@@ -17,6 +17,7 @@ import r from './r';
 import html from './html';
 import { LANGUAGE_ALIASES } from './aliases';
 import { withFailureReport } from '../net';
+import { SKELETON_LANGS, withSkeleton } from '../skeleton';
 import type { Backend } from '..';
 
 // Every entry is a ready-to-call Backend (python's is produced by its own
@@ -57,7 +58,11 @@ const NETWORK_LANGS = new Set([
 
 const languageRegistry: Record<string, Backend> = {};
 for (const [name, engine] of Object.entries(canonical)) {
-  languageRegistry[name] = NETWORK_LANGS.has(name) ? withFailureReport(engine) : engine;
+  const reported = NETWORK_LANGS.has(name) ? withFailureReport(engine) : engine;
+  // Gated on the rules table's own keys rather than a second hand-written list:
+  // a set that drifts from the table would fail silently, exactly the way the
+  // note above NETWORK_LANGS warns about.
+  languageRegistry[name] = SKELETON_LANGS.has(name) ? withSkeleton(name, reported) : reported;
 }
 
 // Aliases are derived rather than hand-written, and point at the *wrapped*

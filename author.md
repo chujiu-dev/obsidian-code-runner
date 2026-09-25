@@ -64,6 +64,8 @@ checks for exactly that:
 | `src/backend/stdin-detect.ts` | `needsStdin`, `extractInputPrompts`, `isInteractiveStdin`, `supportsStdin` |
 | `src/backend/loop-detect.ts` | `looksInfinite` — a heuristic for a loop with no way out (halting is undecidable, and a false alarm is worse than a miss). It does **not** gate or delay anything: `run-watch.ts` uses it only to pick the wording of the running-too-long hint. |
 | `src/backend/run-watch.ts` | Pure functions deciding what to say about a run in progress: `runHint` (elapsed + quiet + loop-shaped + stoppable → which hint) and `waitedTooLong` (queued past two minutes). No imports, so it is unit-testable outside Obsidian. |
+| `src/backend/skeleton-rules.ts` | `buildSkeleton(lang, code)` — decides whether a snippet is an incomplete fragment, and what a complete program looks like for that language. Pure: it imports only `languages/aliases`, so it can be driven from Node. |
+| `src/backend/skeleton.ts` | The wrapper (`withSkeleton`) applied in the registry, the on/off flag, and the one-line notice written before the program runs. |
 | `src/backend/net.ts` | Failure reporting for network-dependent languages: `NetError`/`TimeoutError`/`HttpError`/`OfflineError`/`LibraryError`, `isOffline`, `withTimeout`, `requestWithTimeout` (bounded request that surfaces 4xx/5xx), `importLibrary` (CDN ES-module load with a shape check), `failureMessage` (error → one user-facing line) and `withFailureReport` (wraps a backend so a rejection prints instead of vanishing). |
 | `src/backend/languages/*` | One file per language; `python.ts` also owns the CDN setting |
 | `src/backend/languages/python.ts` | Pyodide via Worker+SAB (interactive) or main thread (pre-fill) |
@@ -133,6 +135,15 @@ checks for exactly that:
   connection. `requestWithTimeout` passes `throw: false` and checks the status itself.
 - `RequestUrlParam` has no `signal`, so a timeout can only be a race against a timer. The
   underlying request keeps running to completion; only the UI stops waiting on it.
+- **The V playground moved off `play.vosca.dev`**: on 2026-09-25 `nslookup` said NXDOMAIN while
+  every other host in the list resolved, so a `v` block ended in `无法连接到…` whatever the code
+  was — the one broken language that no amount of code in this repo could have fixed. The
+  playground answers on **`play.vlang.io`** with an identical request (form body `code=…`) and an
+  identical response (`{ output, buildOutput, error }`), so `v.ts` differs only in the host name.
+  Verified through the registry on the real service: a whole program, a bare snippet completed by
+  the skeleton, a snippet that needs `import os`, the `vlang` alias, and a compile error reaching
+  `stderr`. If V breaks again, check DNS first — that is what it looks like when a playground is
+  retired, not a code bug.
 
 ### CDN libraries: an ES module, or nothing
 
@@ -180,6 +191,80 @@ that it works.
 - Output activity is tracked from the stdio subscription **and** from
   `stdio.viewEl.childElementCount`, because matplotlib figures do not go through `subscribe`;
   that was the one path where a producing program could have looked idle.
+
+## Completing a snippet before it runs
+
+`backend/skeleton-rules.ts` + `backend/skeleton.ts`. A block holding `printf("%d", n);` is a
+fragment, not a program, and the reader's intent is unambiguous — so it is wrapped in the standard
+shape for its language, with the additions named in a one-line collapsible notice above the output.
+Four decisions in there are not obvious, and one of them contradicts the design this started with.
+
+**The snippet's own leading `#include`/`import` lines are hoisted above the generated entry
+point, and that is not cosmetic.** `#include <iostream>` inside a function is an error — every
+libstdc++ header defines names in `namespace std`, and gcc answers `'namespace' definition is not
+allowed here` (checked against the service, not assumed). Java/Kotlin/V and Go `import` are
+grammatically only allowed before the first declaration. Go's parenthesised `import ( … )` is
+hoisted as a whole, because hoisting only its first line would leave a bare `( "fmt" )` in the
+body. Only the *leading* run is moved: an `#include` after the first statement stays where the
+author put it, so the body is never reordered on a guess. The snippet's own lines also stay above
+what was added to them, which is why a leading doc comment is still line 1 of the generated file.
+
+**No `#line` directive, for any language.** The original design had one, to keep diagnostics
+numbered the way the snippet is numbered. Measured against the real service, `#line 1` does make
+the *number* in the message right, but gcc then prints its source excerpt from the physical line
+that logical number names — a warning the reader knows is on snippet line 3 comes out as
+`3 | #line 1` with the caret under the directive, and an error excerpted as the line above the
+fault. The excerpt is the part people actually read, so the shifted number is accepted instead.
+What makes the shift recoverable is the notice's expanded view, which shows the code that was
+really sent. (This is also why the line-number question the test note asks has to be answered by
+comparing against that view, not against the raw number.)
+
+**A snippet that is *defining* something is never wrapped** (`guard` in the rules table):
+`int add(int a, int b) { … }` nested in `main` is a syntax error, and `public class Student { … }`
+nested in a generated class is `modifier public not allowed here`. Wrapping those would trade a
+link error the compiler explains for a syntax error it does not. Same for a snippet that already
+has an entry point (idempotence), an empty or comment-only block, and a Go snippet declaring a
+package other than `main` (a `func main` in another package would never run). Every one of these
+checks runs on `stripLiterals(code)` — comments and string literals blanked — so `// int main() {`
+cannot convince the module the program is complete, and `printf` inside a string cannot drag in a
+header. `stripComments` in `loop-detect.ts` cannot be reused for that: it deletes `#…`, i.e. every
+`#include` line.
+
+**C# is imports-only, and Haskell is not covered at all.** A probe showed the service accepts
+top-level statements, so a C# fragment needs its `using` lines and nothing else — adding a class
+would only break a snippet that awaits something. Haskell is the one entry-point language left out:
+`main = do` is indentation-sensitive, so a fragment cannot be dropped into it without re-indenting
+the author's lines, and "the body is copied verbatim" is the invariant the rest of this module is
+built on. Its exclusion is deliberate, not an oversight.
+
+**C# also gets one statement, and it is there to undo a defect of the service rather than of the
+snippet.** That service's runtime prints through a US-ASCII stdout — `Console.OutputEncoding.WebName`
+answers `us-ascii` — so `Console.WriteLine("中文")` returns `??`. It is the output side and not the
+transport: the same text written as a `\uXXXX` escape, i.e. with no non-ASCII byte in the source,
+mangles identically. One line before the snippet's own code fixes it end to end, and it is spelled
+fully qualified (`System.Console.OutputEncoding = …`) so that it still compiles when the snippet's
+`using` list is empty. It is added only when the snippet can actually print non-ASCII, which is the
+one question asked of `withoutComments(code)` — the second haystack in that file, which keeps string
+literals and drops comments, so that `// 计算平均值` alone does not change the program. Two limits
+worth knowing: it goes in **only for a snippet** (prepended to a whole program it becomes the entry
+point and the program's own `Main` is ignored — `warning CS7022`, measured), so a whole C# program
+printing non-ASCII still shows `?`; and a string built at runtime from char codes rather than
+written in the source is not detected.
+
+Two smaller things that will bite anyone editing the notice:
+
+- The notice is **one line** of HTML with no raw newline, because `Term.tsx` only treats a
+  single-line `<details>…</details>` as markup (its `htmlRegex`) and escapes the rest. Newlines are
+  encoded as `&#10;`, the code is `escapeHtml`-ed, and the summary's `{added}` substitution happens
+  before escaping — so a snippet containing `<` or `&` cannot inject markup.
+- Its class is `code-runner-skeleton`, not `code-runner-warnings`, although the two look alike:
+  `.code-runner-warnings` carries `margin-top: 1em` because it sits under the program's output, and
+  this notice is the output's first line.
+
+The one behaviour that visibly regresses: a program that prints nothing now has a non-empty output
+area, so `Play.tsx`'s `hasResult()` is true and ▶ has become ✕ — a rerun needs a click on the clear
+button first. `api.execute` callers get the notice as the first element of the returned array, which
+is why the API's JSDoc says so.
 
 ## Why the output path is batched, and why it has a ceiling
 
@@ -248,6 +333,12 @@ Typecheck, lint and build say nothing about these; they need a real Obsidian win
 12. That a `ts` block prints its result (`typescript` and `ts` fences alike). `cdns.mjs` proves the
     CDN serves the right compiler and that it transpiles 测试二十六(3); whether Obsidian's
     `import()` of that URL resolves is not something a terminal can answer.
+13. That the completion notice renders *above* the program's output (not beside it, not as raw
+    HTML text) and expands to show the code that ran. `Term.tsx`'s markup path only accepts a
+    single-line `<details>`, which the unit harness checks in the abstract, but the styling is
+    `Play.scss` and only a window can show it.
+14. The setting toggle: "Complete program skeleton" off means the next run is sent exactly as
+    written with no notice, with no reload in between.
 
 The unit-level behaviour behind 7–9 *is* covered in a terminal: `run-watch.ts` and `net.ts` are
 pure and were checked at every boundary, as was `python.ts`'s offline cold-start path against a

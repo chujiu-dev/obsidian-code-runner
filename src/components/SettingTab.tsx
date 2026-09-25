@@ -2,6 +2,7 @@ import type { PluginSetting } from '../setting';
 import type { SetStoreFunction } from 'solid-js/store';
 import type { LanguageSetting } from '../i18n/types';
 import { t, setLanguageSetting } from '../i18n';
+import { setSkeletonEnabled } from '../backend/skeleton';
 
 
 /** Reusable category heading — muted, bold, with top margin. */
@@ -78,6 +79,31 @@ export default (props: {
           <option value="auto">{t('settings.language.auto')}</option>
           <option value="en">English</option>
         </select>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <div class="setting-item-info">
+        <div class="setting-item-name">{t('settings.autoSkeleton.name')}</div>
+        <div class="setting-item-description">{t('settings.autoSkeleton.desc')}</div>
+      </div>
+      <div class="setting-item-control">
+        <div class="checkbox-container" classList={{ 'is-enabled': props.settings.autoSkeleton }}>
+          <input
+            type="checkbox"
+            checked={props.settings.autoSkeleton}
+            onChange={(e) => {
+              const on = e.target.checked;
+              // Applied directly, like setLanguageSetting: no plugin reload and
+              // no new prop, because nothing needs to be torn down for this —
+              // the next run simply reads the new value.
+              setSkeletonEnabled(on);
+              props.settingsUpdate('autoSkeleton', on);
+              props.save();
+            }}
+          />
+          <span class="checkbox-tick"></span>
+        </div>
       </div>
     </div>
 
