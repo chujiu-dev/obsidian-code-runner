@@ -59,6 +59,8 @@ export interface LocaleMap {
   'pyodide.setupError': string;
   'pyodide.injectError': string;
   'pyodide.genericError': string;
+  /** Fallback when a worker error carries no message of its own. */
+  'error.unknown': string;
   'python.aborted': string;
   'python.abortedReload': string;
   'python.loading': string;
@@ -74,8 +76,12 @@ export interface LocaleMap {
 
   // -- sololearn diagnostics --
   'diag.defaultLabel': string;
+  /** Shown when the service answers with its own "no output" placeholder. */
+  'sololearn.noOutput': string;
   'diag.errorCount': string;
   'diag.warningCount': string;
+  /** Joins the two counts above — ", " in English, "，" in Chinese. */
+  'diag.separator': string;
 
   // -- automatic snippet completion --
   'skeleton.notice': string;

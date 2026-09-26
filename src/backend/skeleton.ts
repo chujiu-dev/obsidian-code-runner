@@ -19,7 +19,7 @@
 
 import type { Backend } from './index';
 import type { Stdio } from './store';
-import { escapeHtml } from './util';
+import { escapeHtml, SKELETON_NOTICE_OPEN } from './util';
 import { t } from '../i18n';
 import { buildSkeleton, type SkeletonResult } from './skeleton-rules';
 
@@ -30,7 +30,13 @@ export { SKELETON_LANGS } from './skeleton-rules';
 /** How many added pieces the collapsed line names before it stops counting. */
 const MAX_SHOWN = 4;
 
-/** The one-line, expandable notice. Escaped: `Term` renders this with innerHTML. */
+/**
+ * The one-line, expandable notice. Escaped: `Term` renders this with innerHTML.
+ *
+ * `SKELETON_NOTICE_OPEN` comes from `util.ts` rather than being spelled here,
+ * because `isPluginNote` there is what tells this line apart from the program's
+ * output — the two have to agree on the exact markup.
+ */
 function formatNotice(result: SkeletonResult): string {
   const addition = result.added.length > MAX_SHOWN
     ? [...result.added.slice(0, MAX_SHOWN), `…+${result.added.length - MAX_SHOWN}`].join(' ')
@@ -39,7 +45,7 @@ function formatNotice(result: SkeletonResult): string {
   // Newlines encoded rather than emitted: `Term` only treats a single-line
   // `<details>…</details>` as markup, and it splits on lines.
   const code = escapeHtml(result.code).replace(/\n/g, '&#10;');
-  return `<details class="code-runner-skeleton"><summary>${label}</summary><pre>${code}</pre></details>`;
+  return `${SKELETON_NOTICE_OPEN}<summary>${label}</summary><pre>${code}</pre></details>`;
 }
 
 let enabled = true;

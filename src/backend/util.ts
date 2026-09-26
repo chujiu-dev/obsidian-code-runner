@@ -75,6 +75,32 @@ const ALLOWED_TAGS = new Set([
 /** Attributes kept on those tags. `class` is all the panel's own markup needs. */
 const ALLOWED_ATTRS = new Set(['class']);
 
+// ── The plugin's own lines, told apart from the program's ──
+
+/**
+ * How the plugin's own one-line notes identify themselves. `Term.tsx` dims a
+ * line that opens with it, so the reader can tell the plugin talking about the
+ * run (truncated output, a program that printed nothing) from the program's
+ * own output.
+ */
+export const NOTE_PREFIX = '⚠️';
+
+/** Opens the completion notice; `skeleton.ts` writes the rest of that line. */
+export const SKELETON_NOTICE_OPEN = '<details class="code-runner-skeleton">';
+
+/**
+ * Whether a line was written by the plugin rather than printed by the program.
+ *
+ * `Play.tsx` asks this to decide whether the run button is replaced by the
+ * clear button: a program that prints nothing still leaves a note on screen,
+ * and the ✕ that used to appear there left no way to run the block again but
+ * clearing the output first. A compiler *warning* is deliberately not a note —
+ * it is a product of that run, and clearing it is the reader's call.
+ */
+export function isPluginNote(line: string): boolean {
+  return line.startsWith(NOTE_PREFIX) || line.startsWith(SKELETON_NOTICE_OPEN);
+}
+
 /**
  * Turn one output line into DOM nodes, keeping only whitelisted markup.
  *

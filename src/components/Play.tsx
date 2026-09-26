@@ -8,6 +8,7 @@ import Icon from './Icon';
 import { needsStdin, extractInputPrompts, isInteractiveStdin, supportsStdin } from '../backend/stdin-detect';
 import { looksInfinite } from '../backend/loop-detect';
 import { runHint, waitedTooLong } from '../backend/run-watch';
+import { isPluginNote } from '../backend/util';
 import type { InputPrompt } from '../backend/stdin-detect';
 import { t } from '../i18n';
 
@@ -62,7 +63,15 @@ export default (props: {
     setOuptuts(lines);
   });
 
-  const hasResult = () => (outputs()?.length ?? 0) > 0 || stdio.viewEl.hasChildNodes();
+  // Two questions that used to be one. `showsOutput` is "the output area has
+  // something to display" — the plugin's own notes count, since they are the
+  // only record of what really ran. `hasResult` is "the program produced output
+  // of its own" — they do not, because a snippet that prints nothing is still a
+  // run the user may want to repeat, and replacing ▶ with ✕ left no way to do
+  // that but clearing the output first. Figures count as output: they are
+  // painted into `viewEl`, not written as lines.
+  const showsOutput = () => (outputs()?.length ?? 0) > 0 || stdio.viewEl.hasChildNodes();
+  const hasResult = () => (outputs() ?? []).some(line => !isPluginNote(line)) || stdio.viewEl.hasChildNodes();
 
   const [running, setRunning] = createSignal(false);
   const [input, setInput] = createSignal('');
@@ -466,7 +475,7 @@ export default (props: {
         </div>
       </Show>
 
-      <Show when={running() || hasResult() }>
+      <Show when={running() || showsOutput() }>
         <hr class="code-seprator"/>
         <div class="code-output">
 
@@ -563,7 +572,7 @@ export default (props: {
           </Show>
 
           {/* Output + clear */}
-          <Show when={!running() && hasResult()}>
+          <Show when={!running() && showsOutput()}>
             <Show when={stdinHistory().length > 0}>
               <hr class="code-input-output-divider"/>
             </Show>

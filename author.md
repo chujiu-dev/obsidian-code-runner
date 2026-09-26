@@ -117,7 +117,13 @@ problem like "unnecessary type assertion" only ever shows up under the reviewer'
 | `src/backend/languages/index.ts` | The language registry. `NETWORK_LANGS` decides which backends get `withFailureReport`; aliases are derived from `LANGUAGE_ALIASES` rather than listed by hand, so `R` and `r` cannot drift apart. |
 | `src/backend/languages/aliases.ts` | Fence tags that point at another language (`py`, `javascript`, `R`, …). Being listed here is *also* what makes a tag renderable: `main.tsx` registers a processor per registry key, and the view compares canonical names — see the note below. Every entry must be a valid CSS identifier, which is why `c++`/`c#` are absent. |
 | `src/components/Play.tsx` | The run UI: input forms, spinner, stop button, output cache |
-| `src/i18n/` | `types.ts` is the key contract — a new key must be added to `en.ts`, `zh.ts` **and** `types.ts` |
+| `src/i18n/` | `types.ts` is the key contract — a new key must be added to `en.ts`, `zh.ts` **and** `types.ts`. English is the first language: it is the shape every other locale is written against, and where the two disagree English wins. |
+
+Anything a translation *builds* rather than states belongs in the map too, not in the calling code:
+`diag.separator` exists only because joining `1 个错误` and `1 个警告` with a hard-coded `', '` put an
+English comma in a Chinese sentence. Plurals are the same story — `diag.errorCount` carries `{s}` in
+English and no such placeholder in Chinese, since Chinese does not inflect. The caller still computes
+`s: n > 1 ? 's' : ''`, and an absent placeholder is simply ignored, so the same call site serves both.
 
 ### Pyodide specifics
 
@@ -158,6 +164,17 @@ problem like "unnecessary type assertion" only ever shows up under the reviewer'
   (`` import(`${cdn}pyodide.mjs`) ``). After touching that line, check `dist/main.js` still
   contains a real `import(`, not a `require()` — the build output is CJS and a rewrite there
   would break the tablet path.
+- **A Python traceback arrives with the runtime's own frames on top, and `withoutEngineFrames()`
+  takes them off** (1.4.2). Pyodide formats the traceback inside
+  `_pyodide/_base.py::eval_code_async` → `run_async` → `eval`, so `print(undefined_name)` used to
+  open with three frames of machinery before the reader's own `<exec>` line — noise in a panel
+  that is meant to be read. Everything from the first frame that is *not* under
+  `/lib/python3…_pyodide/` is kept, so an error raised inside a function the reader wrote still
+  shows the path through their code. Applied in both error paths (the Worker's message handler and
+  the main-thread backend), and deliberately conservative: anything that is not a traceback with at
+  least one of the reader's frames comes back byte for byte, which is what makes it safe to apply
+  to load failures and `SyntaxError`s too. The test note used to claim all three error shapes were
+  "one or two lines", which was false for Python until this existed.
 
 ### Network-dependent languages
 
@@ -179,6 +196,14 @@ problem like "unnecessary type assertion" only ever shows up under the reviewer'
   connection. `requestWithTimeout` passes `throw: false` and checks the status itself.
 - `RequestUrlParam` has no `signal`, so a timeout can only be a race against a timer. The
   underlying request keeps running to completion; only the UI stops waiting on it.
+- **SoloLearn answers `No output.` for a program that printed nothing** — all seven of its
+  languages, and in English whatever the `Accept-Language` header says (measured; the plugin sends
+  `zh-CN` first). `splitDiagnostics` replaces that literal with `t('sololearn.noOutput')`, so a
+  Chinese reader sees a Chinese sentence instead of the one piece of English a correct run used to
+  produce. The replacement opens with ⚠️, i.e. it is a *note*: without that, the line would count
+  as the program's output and put ✕ back where ▶ belongs, which is the same bug as the completion
+  notice's. A program that prints exactly `No output.` and nothing else is indistinguishable from
+  the placeholder — harmless, since the two sentences mean the same thing.
 - **The V playground moved off `play.vosca.dev`**: on 2026-09-25 `nslookup` said NXDOMAIN while
   every other host in the list resolved, so a `v` block ended in `无法连接到…` whatever the code
   was — the one broken language that no amount of code in this repo could have fixed. The
@@ -281,6 +306,13 @@ would only break a snippet that awaits something. Haskell is the one entry-point
 the author's lines, and "the body is copied verbatim" is the invariant the rest of this module is
 built on. Its exclusion is deliberate, not an oversight.
 
+**The other languages are left alone because "a bare statement is already a whole program" was
+measured, not assumed.** Asked of the real services: `print("swift-bare")`, `puts "crystal-bare"`
+and `print("r-bare")` each run as written and print the right thing, so wrapping them could only
+add noise. Haskell behaves as described above rather than being broken here — a bare snippet fails
+for want of `main`, and one where the user wrote `main = do` themselves runs, which is the state
+that module deliberately leaves it in.
+
 **C# also gets one statement, and it is there to undo a defect of the service rather than of the
 snippet.** That service's runtime prints through a US-ASCII stdout — `Console.OutputEncoding.WebName`
 answers `us-ascii` — so `Console.WriteLine("中文")` returns `??`. It is the output side and not the
@@ -305,10 +337,24 @@ Two smaller things that will bite anyone editing the notice:
   `.code-runner-warnings` carries `margin-top: 1em` because it sits under the program's output, and
   this notice is the output's first line.
 
-The one behaviour that visibly regresses: a program that prints nothing now has a non-empty output
-area, so `Play.tsx`'s `hasResult()` is true and ▶ has become ✕ — a rerun needs a click on the clear
-button first. `api.execute` callers get the notice as the first element of the returned array, which
-is why the API's JSDoc says so.
+**The notice broke one predicate in `Play.tsx`, and the fix was to split it in two** (1.4.2). It is
+the first thing written to the output, so a program that prints nothing used to leave a non-empty
+output area, `hasResult()` was true, and ▶ was replaced by ✕ — a rerun needed a click on the clear
+button first. `showsOutput()` ("the area has something to display") and `hasResult()` ("the program
+printed something of its own") now answer separately, and only the second one decides the button.
+
+What separates the two is `isPluginNote()` in `util.ts`: a line the *plugin* wrote, not the program.
+Two things mark one — the ⚠️ prefix, which `Term.tsx` was already using to dim the truncation
+notices, and the completion notice's own opening tag (`SKELETON_NOTICE_OPEN`, exported from
+`util.ts` so the marker and the markup that produces it cannot drift apart). A compile *warning* is
+deliberately not a note: it is a product of that run, and whether to clear it is the reader's call.
+Both `Play` predicates include `stdio.viewEl.hasChildNodes()`, because figures are painted into the
+view rather than written as lines. One case is left as it was: after a stop, the only line is
+`已停止。`, which is not a note, so ✕ stands where ▶ could — long-standing behaviour, not a
+regression, and changing it means deciding that runtime messages count as the plugin talking.
+
+`api.execute` callers get the notice as the first element of the returned array, which is why the
+API's JSDoc says so.
 
 ## Why the output path is batched, and why it has a ceiling
 

@@ -57,6 +57,7 @@ const en: LocaleMap = {
   'pyodide.setupError': '[Setup Error] {message}',
   'pyodide.injectError': '[Setup Error] Failed to inject input replacement',
   'pyodide.genericError': '[Pyodide Error] {message}',
+  'error.unknown': 'Unknown error',
   'python.aborted': 'Stopped.',
   'python.abortedReload': 'Stopped. The program ignored the interrupt, so the Python runtime was restarted — the next run reloads it.',
   'python.loading': 'Loading the Python runtime (downloads ~10 MB on first use)…',
@@ -72,8 +73,10 @@ const en: LocaleMap = {
 
   // -- sololearn diagnostics --
   'diag.defaultLabel': 'diagnostic',
+  'sololearn.noOutput': '⚠️ The program produced no output.',
   'diag.errorCount': '{n} error{s}',
   'diag.warningCount': '{n} warning{s}',
+  'diag.separator': ', ',
 
   // -- automatic snippet completion --
   'skeleton.notice': '⚠ Snippet completed: {added} (click to see the code that ran)',

@@ -57,6 +57,7 @@ const zh: LocaleMap = {
   'pyodide.setupError': '[设置错误] {message}',
   'pyodide.injectError': '[设置错误] 注入 input 替换失败',
   'pyodide.genericError': '[Pyodide 错误] {message}',
+  'error.unknown': '未知错误',
   'python.aborted': '已停止。',
   'python.abortedReload': '已停止。程序没有响应中断信号，已重启 Python 运行时 —— 下次运行会重新加载。',
   'python.loading': '正在加载 Python 运行时（首次使用需下载约 10 MB，请稍候）…',
@@ -72,8 +73,15 @@ const zh: LocaleMap = {
 
   // -- sololearn diagnostics --
   'diag.defaultLabel': '诊断信息',
-  'diag.errorCount': '{n} 个错误{s}',
-  'diag.warningCount': '{n} 个警告{s}',
+  'sololearn.noOutput': '⚠️ 程序运行结束，没有输出。',
+  // No `{s}` here: Chinese does not inflect for number, and the caller's
+  // suffix would land on screen as "3 个错误s". The placeholder is simply
+  // absent, so the runtime leaves the string alone.
+  'diag.errorCount': '{n} 个错误',
+  'diag.warningCount': '{n} 个警告',
+  // Full-width, like the rest of the line: "1 个错误, 1 个警告" reads as a
+  // typo in Chinese, which is how it looked before this key existed.
+  'diag.separator': '，',
 
   // -- 自动补全程序骨架 --
   'skeleton.notice': '⚠ 已自动补全代码片段：{added}（点开可查看实际运行的代码）',

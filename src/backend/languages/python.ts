@@ -35,6 +35,36 @@ const hasSAB = (() => {
 })();
 export { hasSAB };
 
+/** A traceback frame: `  File "…", line N, in name`. */
+const FRAME = /^\s*File "/;
+/** …and that frame is Pyodide's own, not the reader's code. */
+const ENGINE_FRAME = /^\s*File "\/lib\/python3[^"]*_pyodide\//;
+
+/**
+ * Drop the frames that belong to the runtime from a Python traceback.
+ *
+ * Pyodide formats the traceback for us, and it starts inside itself:
+ * `_pyodide/_base.py`'s `eval_code_async` → `run_async` → `eval`, three frames
+ * of machinery nobody can act on, with the line the reader wrote (`<exec>`)
+ * buried under them. Everything from the first frame that is *not* the engine's
+ * is kept — that frame's source excerpt and every frame below it included — so
+ * an error raised inside one of the reader's own functions still shows the
+ * path through their code.
+ *
+ * Conservative by construction: anything that is not a traceback with at least
+ * one non-engine frame comes back untouched, which is what makes this safe to
+ * apply to every error string (a `SyntaxError` from `eval` has no header and
+ * only an `<exec>` frame; a load failure has no frames at all).
+ */
+export function withoutEngineFrames(message: string): string {
+  const lines = message.split('\n');
+  const firstFrame = lines.findIndex((line) => FRAME.test(line));
+  if (firstFrame === -1) return message;
+  const firstOwn = lines.findIndex((line, i) => i >= firstFrame && FRAME.test(line) && !ENGINE_FRAME.test(line));
+  if (firstOwn <= firstFrame) return message;
+  return [lines[0], ...lines.slice(firstOwn)].join('\n');
+}
+
 // ── Shared stdin buffer layout ──
 // The Worker and the main thread talk through one SharedArrayBuffer:
 //
@@ -422,7 +452,7 @@ function createMainThreadBackend(): Backend & { dispose: () => void } {
       try {
         await eng.runPythonAsync(code);
       } catch (e: unknown) {
-        output.stderr(errorText(e));
+        output.stderr(withoutEngineFrames(errorText(e)));
       }
       // Force-flush stdout buffer for output without trailing newline
       try { await eng.runPythonAsync('print()'); } catch { /* best-effort flush; ignore if Pyodide has already shut down */ }
@@ -552,7 +582,8 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
         } else if (data.code === 'NOT_INITIALIZED') {
           msg = t('pyodide.notInitialized');
         } else {
-          msg = data.error || t('pyodide.genericError', { message: '' });
+          // The one branch that can carry a user-code traceback.
+          msg = withoutEngineFrames(data.error || t('pyodide.genericError', { message: '' }));
         }
         // A stop delivers SIGINT, which surfaces here as a KeyboardInterrupt.
         // Reporting the raw traceback for a stop the user asked for reads as a
@@ -577,7 +608,7 @@ function createWorkerBackend(): Backend & { dispose: () => void } {
 
     worker.onerror = (e: ErrorEvent) => {
       console.error('[Code Runner] Worker error:', e.message);
-      if (activeOutput) activeOutput.stderr(t('worker.error', { message: e.message || 'Unknown error' }));
+      if (activeOutput) activeOutput.stderr(t('worker.error', { message: e.message || t('error.unknown') }));
       endRun();
     };
 
